@@ -1,0 +1,233 @@
+import { UseFormClearErrors, UseFormSetError } from "react-hook-form"
+import { CPFValidator } from "./formatters"
+
+export const validateStep1 = (
+  data: CheckoutFormData,
+  setError: UseFormSetError<CheckoutFormData>,
+  clearErrors: UseFormClearErrors<CheckoutFormData>,
+): boolean => {
+  let hasError = false
+
+  if (!data.fullName?.trim() || data.fullName.trim().length < 2) {
+    setError('fullName', { message: 'Informe seu nome completo.' })
+    hasError = true
+  } else if (!/^[a-zA-ZÀ-ÿ\s]+$/.test(data.fullName)) {
+    setError('fullName', { message: 'O nome não pode conter números ou caracteres especiais' })
+    hasError = true
+  } else if (data.fullName.trim().split(/\s+/).length < 2) {
+    setError('fullName', { message: 'Informe seu nome completo.' })
+    hasError = true
+  } else {
+    clearErrors('fullName')
+  }
+
+  if (!data.tel?.trim() || data.tel.trim().length < 4) {
+    setError('tel', { message: 'Informe número de celular válido.' })
+    hasError = true
+  } else if (!/^\(\d{2}\)\s\d\s\d{4}-\d{4}$/.test(data.tel)) {
+    setError('tel', { message: 'Celular inválido. Use o formato 00 0 0000-0000' })
+    hasError = true
+  } else { clearErrors('tel') }
+
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+  if (!data.email?.trim()) {
+    setError('email', { message: 'Informe um e-mail válido.' })
+    hasError = true
+  } else if (!emailRegex.test(data.email)) {
+    setError('email', { message: 'Informe um e-mail válido.' })
+    hasError = true
+  } else { clearErrors('email') }
+
+  if (!data.mobileLine?.trim()) {
+    setError('mobileLine', { message: 'Selecione uma opção válida.' })
+    hasError = true
+  } else { clearErrors('mobileLine') }
+
+  return !hasError
+}
+
+export const validateStep2 = (
+  data: CheckoutFormData,
+  setError: UseFormSetError<CheckoutFormData>,
+  clearErrors: UseFormClearErrors<CheckoutFormData>,
+): boolean => {
+  let hasError = false
+
+  if (!data.cep || !/^\d{5}-?\d{3}$/.test(data.cep)) {
+    setError('cep', { message: 'CEP inválido. Use o formato 00000-000' })
+    hasError = true
+  } else { clearErrors('cep') }
+
+  if (!data.homeNumber?.trim()) {
+    setError('homeNumber', { message: 'Informe o número da residência.' })
+    hasError = true
+  } else { clearErrors('homeNumber') }
+
+  if (!data.street?.trim()) {
+    setError('street', { message: 'Informe a rua da residência.' })
+    hasError = true
+  } else { clearErrors('street') }
+
+  if (!data.district?.trim()) {
+    setError('district', { message: 'Informe seu bairro.' })
+    hasError = true
+  } else { clearErrors('district') }
+
+  if (!data.city?.trim()) {
+    setError('city', { message: 'Informe sua cidade.' })
+    hasError = true
+  } else { clearErrors('city') }
+
+  if (!data.uf || data.uf.length < 2) {
+    setError('uf', { message: 'Informe seu estado.' })
+    hasError = true
+  } else { clearErrors('uf') }
+
+  if (!data.liveIn) {
+    setError('liveIn', { message: 'Informe onde você mora.' })
+    hasError = true
+  } else { clearErrors('liveIn') }
+
+  if (data.hasBlockAndLot) {
+    if (!data.block?.trim()) {
+      setError('block', { message: 'Informe a quadra.' })
+      hasError = true
+    } else { clearErrors('block') }
+
+    if (!data.lot?.trim()) {
+      setError('lot', { message: 'Informe o lote.' })
+      hasError = true
+    } else { clearErrors('lot') }
+  }
+
+  if (data.liveIn === 'building') {
+    if (!data.complement) {
+      setError('complement', { message: 'Informe um complemento válido.' })
+      hasError = true
+    } else { clearErrors('complement') }
+
+    if (!data.floor) {
+      setError('floor', { message: 'Informe o andar.' })
+      hasError = true
+    } else { clearErrors('floor') }
+  }
+
+  return !hasError
+}
+
+export const validateStep3 = (
+  data: CheckoutFormData,
+  setError: UseFormSetError<CheckoutFormData>,
+  clearErrors: UseFormClearErrors<CheckoutFormData>
+): boolean => {
+  let hasError = false
+
+  if (!data.primaryDate?.trim()) {
+    setError('primaryDate', { message: 'Selecione a data (1ª opção).' })
+    hasError = true
+  } else { clearErrors('primaryDate') }
+
+  if (!data.primaryPeriod?.trim()) {
+    setError('primaryPeriod', { message: 'Selecione o período (1ª opção).' })
+    hasError = true
+  } else { clearErrors('primaryPeriod') }
+
+  if (!data.secondaryDate?.trim()) {
+    setError('secondaryDate', { message: 'Selecione a data (2ª opção).' })
+    hasError = true
+  } else { clearErrors('secondaryDate') }
+
+  if (!data.secondaryPeriod?.trim()) {
+    setError('secondaryPeriod', { message: 'Selecione o período (2ª opção).' })
+    hasError = true
+  } else { clearErrors('secondaryPeriod') }
+
+  if (!data.secondaryPeriod?.trim()) {
+    setError('secondaryPeriod', { message: 'Selecione o período (2ª opção).' })
+    hasError = true
+  } else { clearErrors('secondaryPeriod') }
+
+  if (!data.dueDay?.trim()) {
+    setError('dueDay', { message: 'Selecione o dia do vencimento.' })
+    hasError = true
+  } else { clearErrors('dueDay') }
+
+  return !hasError
+}
+
+export const validateStep4 = (
+  data: CheckoutFormData,
+  setError: UseFormSetError<CheckoutFormData>,
+  clearErrors: UseFormClearErrors<CheckoutFormData>,
+): boolean => {
+  let hasError = false
+
+  if (!data.cpf?.trim() || !CPFValidator(data.cpf)) {
+    setError('cpf', { message: 'Informe um CPF válido (000.000.000-00).' })
+    hasError = true
+  } else { clearErrors('cpf') }
+
+  if (!data.bornDate?.trim() || !/^\d{2}\/\d{2}\/\d{4}$/.test(data.bornDate)) {
+    setError('bornDate', { message: 'Informe uma data válida (dd/mm/aaaa).' })
+    hasError = true
+  } else { clearErrors('bornDate') }
+
+  if (!data.motherName?.trim() || data.motherName.trim().length < 2) {
+    setError('motherName', { message: 'Informe o nome completo da sua mãe.' })
+    hasError = true
+  } else if (!/^[a-zA-ZÀ-ÿ\s]+$/.test(data.motherName)) {
+    setError('motherName', { message: 'O nome não pode conter números ou caracteres especiais' })
+    hasError = true
+  } else if (data.motherName.trim().split(/\s+/).length < 2) {
+    setError('motherName', { message: 'Informe o nome completo da sua mãe.' })
+    hasError = true
+  } else {
+    clearErrors('motherName')
+  }
+
+  if (!data.primaryTel?.trim() || data.primaryTel.replace(/\D/g, '').length < 10) {
+    setError('primaryTel', { message: 'Informe um número de celular válido.' })
+    hasError = true
+  } else { clearErrors('primaryTel') }
+
+  if (!data.termsOfUse) {
+    setError('termsOfUse', { message: 'Você precisa aceitar os termos para continuar.' })
+    hasError = true
+  } else { clearErrors('termsOfUse') }
+
+  return !hasError
+}
+
+export type CheckoutFormData = {
+  fullName?: string,
+  tel?: string,
+  email?: string,
+  mobileLine?: string,
+  //
+  cep?: string
+  homeNumber?: string
+  street?: string
+  district?: string
+  city?: string
+  uf?: string
+  liveIn?: string,
+  complement?: string,
+  landmark?: string,
+  floor?: string,
+  hasBlockAndLot?: boolean,
+  block?: string,
+  lot?: string,
+  //
+  dueDay?: string,
+  primaryDate?: string,
+  primaryPeriod?: string,
+  secondaryDate?: string,
+  secondaryPeriod?: string
+  //
+  cpf?: string,
+  bornDate?: string,
+  motherName?: string,
+  primaryTel?: string,
+  secondaryTel?: string,
+  termsOfUse?: boolean
+}
