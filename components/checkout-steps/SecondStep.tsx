@@ -163,37 +163,6 @@ function Index({ customerData, form, step }: SecondStepProps) {
           <span className="opacity-75 text-sm font-light">{watchLiveIn === 'house' ? 'Opcional' : 'Obrigatório'}</span>
         </div>
 
-        <div className="lg:col-span-2 mt-2">
-          <p className="text-sm">
-            Pacote de TV
-          </p>
-          <p className="text-lg mb-2 font-bold">
-            Que tal adicionar um pacote de TV no seu plano?
-          </p>
-          <Controller
-            name="TVPlan"
-            control={control}
-            render={({ field }) => (
-              <RadioGroup
-                className="flex items-center gap-4 px-4 my-2 lg:px-0"
-                onValueChange={field.onChange}
-                value={field.value}>
-                <div className="flex items-center gap-2 lg:ml-4">
-                  <RadioGroupItem value="want" id="want" />
-                  <Label htmlFor="want" className="font-light text-1xl">Sim, quero adicionar um pacote de TV</Label>
-                </div>
-                <div className="flex items-center gap-2">
-                  <RadioGroupItem value="dontWant" id="dontWant" />
-                  <Label htmlFor="dontWant" className="font-light text-1xl">Por enquanto não tenho interesse</Label>
-                </div>
-              </RadioGroup>
-            )}
-          />
-          {errors.TVPlan && (
-            <p className="text-red-500 text-sm mt-1">{String(errors.TVPlan.message)}</p>)}
-        </div>
-
-
       </div>
     </div>
   )

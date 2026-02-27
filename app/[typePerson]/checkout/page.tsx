@@ -43,7 +43,6 @@ export const checkoutPFPJSchema = z.object({
   hasBlockAndLot: z.boolean().optional(),
   block: z.string().optional(),
   lot: z.string().optional(),
-  TVPlan: z.string().optional(),
   // step 3
   dueDay: z.string().optional(),
   primaryDate: z.string().optional(),
@@ -53,7 +52,6 @@ export const checkoutPFPJSchema = z.object({
   // step 4
   cpf: z.string().optional(),
   bornDate: z.string().optional(),
-  motherName: z.string().optional(),
   primaryTel: z.string().optional(),
   secondaryTel: z.string().optional(),
   termsOfUse: z.boolean().optional(),
@@ -76,7 +74,7 @@ function Index() {
     },
     2: {
       title: 'Agora, você precisa completar o endereço',
-      subtitle: 'Endereço de Instalação de Fibra'
+      subtitle: 'Endereço de entrega do Chip'
     },
     3: {
       title: 'Defina a melhor data para instalação:',
@@ -108,7 +106,6 @@ function Index() {
       hasBlockAndLot: customerData?.address?.hasBlockAndLot || false,
       block: customerData?.address?.block || '',
       lot: customerData?.address?.lot || '',
-      TVPlan: customerData?.address?.TVPlan || 'dontWant',
       //
       dueDay: customerData?.thirdStepData?.dueDay || '',
       primaryDate: customerData?.thirdStepData?.primaryDate || '',
@@ -118,7 +115,6 @@ function Index() {
       //
       cpf: customerData?.fourthStepData?.cpf || '',
       bornDate: customerData?.fourthStepData?.bornDate || '',
-      motherName: customerData?.fourthStepData?.motherName || '',
       primaryTel: customerData?.fourthStepData?.primaryTel || '',
       secondaryTel: customerData?.fourthStepData?.secondaryTel || '',
       termsOfUse: customerData?.fourthStepData?.termsOfUse || false,
@@ -175,7 +171,6 @@ function Index() {
       setValue('hasBlockAndLot', customerData?.address?.hasBlockAndLot || false)
       setValue('block', customerData?.address?.block || '')
       setValue('lot', customerData?.address?.lot || '')
-      setValue('TVPlan', customerData?.address?.TVPlan || 'dontWant')
     }
 
     // Step 3
@@ -191,7 +186,6 @@ function Index() {
     if (step === 4) {
       setValue('cpf', customerData?.fourthStepData?.cpf || '')
       setValue('bornDate', customerData?.fourthStepData?.bornDate || '')
-      setValue('motherName', customerData?.fourthStepData?.motherName || '')
       setValue('primaryTel', customerData?.firstStepData?.tel || '')
       setValue('secondaryTel', customerData?.fourthStepData?.secondaryTel || '')
       setValue('termsOfUse', customerData?.fourthStepData?.termsOfUse || false)
@@ -226,7 +220,6 @@ function Index() {
         uf: data.uf,
         liveIn: data.liveIn,
         complement: data.complement,
-        TVPlan: data.TVPlan,
         ...(data.landmark && { landmark: data.landmark }),
         ...(data.floor && { floor: data.floor }),
         ...(data.block && { landmark: data.block }),
@@ -254,7 +247,6 @@ function Index() {
       const fourthStepData = {
         cpf: data.cpf,
         bornDate: data.bornDate,
-        motherName: data.motherName,
         primaryTel: data.primaryTel,
         secondaryTel: data.secondaryTel,
         termsOfUse: data.termsOfUse,
@@ -329,6 +321,11 @@ function Index() {
           <div className={`bg-white p-4 rounded-sm shadow-xs ${(step !== 3 ? 'mt-12' : 'mt-4')}`}>
             <div>
               <p className={`font-light mb-4 ${(step === 4) && 'hidden'}`}>{STEPS[step as keyof typeof STEPS].subtitle}</p>
+              {(step === 2) && (
+                <p className="font-light mb-4 text-sm">
+                  É necessário ter alguém no local informado. <a href="#" className="underline text-default-purple">Consulte o prazo de entrega</a>
+                </p>
+              )}
               <p className={`text-2xl font-semibold text-gray-800 ${(step === 4) && 'hidden'}`}>{STEPS[step as keyof typeof STEPS].title}</p>
               {(step === 3) && (
                 <p className="font-light mt-2 mb-4 text-sm">*Verifique se no local solicitado há restrição de horário para que nossa equipe faça a instalação.</p>

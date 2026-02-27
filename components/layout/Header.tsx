@@ -30,7 +30,10 @@ function Index() {
             <Menu size={32} />
           </button>
 
-          <Image src={'/logo-gold.webp'} alt="Logo Gold" width={112} height={60} className="hidden lg:block" />
+          <div className="hidden lg:flex flex-col items-center">
+            <Image src={'/logo-gold.webp'} alt="Logo Gold" width={112} height={60}/>
+            <p className="border border-[#6c4598] px-[5px] rounded-sm text-[#6c4598] font-semibold text-sm">Parceiro autorizado</p>
+          </div>
         </div>
 
         <MenuMobile isOpen={isOpen} />

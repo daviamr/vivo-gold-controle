@@ -58,23 +58,6 @@ function Index({ form }: SecondStepProps) {
         </div>
 
         <div className="lg:col-span-2">
-          <Label className="text-1xl font-normal mb-1" htmlFor="motherName">
-            Nome Completo da Mãe</Label>
-          <Controller
-            name="motherName"
-            control={control}
-            render={({ field }) => (
-              <Input
-                type="text"
-                id="motherName"
-                value={field.value || ''}
-                onChange={field.onChange} />
-            )} />
-          {errors.motherName && (
-            <p className="text-red-500 text-sm mt-1">{String(errors.motherName.message)}</p>)}
-        </div>
-
-        <div className="lg:col-span-2">
           <p className="text-2xl font-semibold text-gray-800 mb-4">Confirmação via SMS</p>
           <p className="font-light text-[13px]"><span className="font-bold text-red-700">IMPORTANTE!</span> O SMS para realização da biometria será enviado ao número informado abaixo:</p>
         </div>

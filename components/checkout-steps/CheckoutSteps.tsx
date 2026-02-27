@@ -23,7 +23,7 @@ function Index({ step }: CheckoutStepsProps) {
           2
           <span
             className={`${spanDefaultStyle} -bottom-8 ${(step >= 2 && 'text-default-purple font-bold')}`}>
-            Instalação
+            Endereço
           </span>
         </li>
         <li
@@ -31,7 +31,7 @@ function Index({ step }: CheckoutStepsProps) {
           3
           <span
             className={`${spanDefaultStyle} -bottom-8 ${(step >= 3 && 'text-default-purple font-bold')}`}>
-            Agendamento
+            Fatura
           </span>
         </li>
         <li

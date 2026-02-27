@@ -64,21 +64,20 @@ function Index() {
               <span className="absolute -top-4 left-0 text-sm bg-default-purple text-white py-1 px-6 rounded-sm rounded-bl-none uppercase">Volta às Aulas &#128214;</span>
 
               <p>{plan.plan}</p>
-              <div className="flex gap-2 items-baseline mt-1 pb-4">
+              <div className="flex gap-2 items-baseline mt-1 pb-2">
                 <Smartphone />
                 <div>
                   <p className="flex items-center gap-2 text-3xl">{plan.pos} GB</p>
-                  <p className="text-sm">de Vivo Pós</p>
                 </div>
               </div>
               <div className="flex flex-col gap-4 my-2">
                 {plan?.franchise && (
-                  <p className="flex items-center gap-2 font-semibold">
+                  <p className="flex items-center gap-2">
                     <Check size={18} /> {plan.franchise} GB de franquia
                   </p>
                 )}
                 {plan?.bonus && (
-                  <p className="flex items-center gap-2 font-semibold">
+                  <p className="flex items-center gap-2">
                     <Check size={18} /> {plan.bonus} GB de bônus
                   </p>
                 )}
@@ -112,7 +111,7 @@ function Index() {
                 variant={'vivoPlans'}
                 className="w-full rounded-sm p-6 text-white tracking-wider"
                 onClick={() => handleCheckout(plan)}>
-                Consultar Fibra+Pós
+                Contratar Vivo Controle
               </Button>
 
               <span

@@ -172,19 +172,6 @@ export const validateStep4 = (
     hasError = true
   } else { clearErrors('bornDate') }
 
-  if (!data.motherName?.trim() || data.motherName.trim().length < 2) {
-    setError('motherName', { message: 'Informe o nome completo da sua mãe.' })
-    hasError = true
-  } else if (!/^[a-zA-ZÀ-ÿ\s]+$/.test(data.motherName)) {
-    setError('motherName', { message: 'O nome não pode conter números ou caracteres especiais' })
-    hasError = true
-  } else if (data.motherName.trim().split(/\s+/).length < 2) {
-    setError('motherName', { message: 'Informe o nome completo da sua mãe.' })
-    hasError = true
-  } else {
-    clearErrors('motherName')
-  }
-
   if (!data.primaryTel?.trim() || data.primaryTel.replace(/\D/g, '').length < 10) {
     setError('primaryTel', { message: 'Informe um número de celular válido.' })
     hasError = true
@@ -226,7 +213,6 @@ export type CheckoutFormData = {
   //
   cpf?: string,
   bornDate?: string,
-  motherName?: string,
   primaryTel?: string,
   secondaryTel?: string,
   termsOfUse?: boolean
