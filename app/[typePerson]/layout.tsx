@@ -12,7 +12,7 @@ export const metadata: Metadata = {
 export default function TypePersonLayout({ children }: PersonLayoutProps) {
   return (
     <>
-      {/* <ConditionalModal /> */}
+      <ConditionalModal />
       <Header />
       <DefaultLayout>
         {children}

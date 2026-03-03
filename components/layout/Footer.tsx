@@ -2,7 +2,7 @@ import Image from "next/image"
 
 function Index() {
   return (
-    <div className="absolute w-full bottom-0 bg-white">
+    <div className="relative w-full bottom-0 bg-white">
       <div className="container m-auto px-4 py-6">
         <div className="flex items-center justify-between mb-6">
           <Image src={`/icon-f-1.svg`} alt="logo" width={120} height={40} />

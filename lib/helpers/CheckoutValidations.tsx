@@ -122,31 +122,6 @@ export const validateStep3 = (
 ): boolean => {
   let hasError = false
 
-  if (!data.primaryDate?.trim()) {
-    setError('primaryDate', { message: 'Selecione a data (1ª opção).' })
-    hasError = true
-  } else { clearErrors('primaryDate') }
-
-  if (!data.primaryPeriod?.trim()) {
-    setError('primaryPeriod', { message: 'Selecione o período (1ª opção).' })
-    hasError = true
-  } else { clearErrors('primaryPeriod') }
-
-  if (!data.secondaryDate?.trim()) {
-    setError('secondaryDate', { message: 'Selecione a data (2ª opção).' })
-    hasError = true
-  } else { clearErrors('secondaryDate') }
-
-  if (!data.secondaryPeriod?.trim()) {
-    setError('secondaryPeriod', { message: 'Selecione o período (2ª opção).' })
-    hasError = true
-  } else { clearErrors('secondaryPeriod') }
-
-  if (!data.secondaryPeriod?.trim()) {
-    setError('secondaryPeriod', { message: 'Selecione o período (2ª opção).' })
-    hasError = true
-  } else { clearErrors('secondaryPeriod') }
-
   if (!data.dueDay?.trim()) {
     setError('dueDay', { message: 'Selecione o dia do vencimento.' })
     hasError = true

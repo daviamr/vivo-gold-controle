@@ -12,7 +12,7 @@ function Index() {
       </div>
 
       <div>
-        <Image src="/icon-1.svg" alt="Benefit 1" width={100} height={100} className="mb-4" />
+        <Image src="/icon-f-4.svg" alt="Benefit 1" width={100} height={100} className="mb-4" />
         <div>
           <p className="mb-2">Vivo Valoriza</p>
           <p className="max-w-100 opacity-75">Aproveite descontos e gratuidades em produtos, serviços e experiências.</p>

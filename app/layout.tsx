@@ -17,7 +17,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children, }: Readonly<{ children: React.ReactNode; }>) {
   return (
     <html lang="pt-br">
-      <body className={`relative min-h-screen ${roboto.variable} font-sans antialiased`}>
+      <body className={`relative ${roboto.variable} font-sans antialiased`}>
         {children}
         <Footer/>
       </body>

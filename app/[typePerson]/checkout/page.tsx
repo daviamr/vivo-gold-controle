@@ -77,8 +77,8 @@ function Index() {
       subtitle: 'Endereço de entrega do Chip'
     },
     3: {
-      title: 'Defina a melhor data para instalação:',
-      subtitle: 'Agendar instalação'
+      title: '',
+      subtitle: 'Fatura Digital'
     },
     4: {
       title: 'Informe seus dados pessoais',
@@ -108,10 +108,6 @@ function Index() {
       lot: customerData?.address?.lot || '',
       //
       dueDay: customerData?.thirdStepData?.dueDay || '',
-      primaryDate: customerData?.thirdStepData?.primaryDate || '',
-      primaryPeriod: customerData?.thirdStepData?.primaryPeriod || '',
-      secondaryDate: customerData?.thirdStepData?.secondaryDate || '',
-      secondaryPeriod: customerData?.thirdStepData?.secondaryPeriod || '',
       //
       cpf: customerData?.fourthStepData?.cpf || '',
       bornDate: customerData?.fourthStepData?.bornDate || '',
@@ -176,10 +172,6 @@ function Index() {
     // Step 3
     if (step === 3) {
       setValue('dueDay', customerData?.thirdStepData?.dueDay || '')
-      setValue('primaryDate', customerData?.thirdStepData?.primaryDate || '')
-      setValue('primaryPeriod', customerData?.thirdStepData?.primaryPeriod || '')
-      setValue('secondaryDate', customerData?.thirdStepData?.secondaryDate || '')
-      setValue('secondaryPeriod', customerData?.thirdStepData?.secondaryPeriod || '')
     }
 
     // Step 4
@@ -193,6 +185,7 @@ function Index() {
   }, [step, customerData, setValue])
 
   const onSubmit = async (data: CheckoutFormData) => {
+    console.log('entrou')
     let dataToSave
 
     if (step === 1) {
@@ -233,10 +226,6 @@ function Index() {
     if (step === 3) {
       const thirdStepData = {
         dueDay: data.dueDay,
-        primaryDate: data.primaryDate,
-        primaryPeriod: data.primaryPeriod,
-        secondaryDate: data.secondaryDate,
-        secondaryPeriod: data.secondaryPeriod,
       }
       dataToSave = { ...customerData, thirdStepData }
       const isValid = validateStep3(data, form.setError, form.clearErrors)
@@ -328,7 +317,7 @@ function Index() {
               )}
               <p className={`text-2xl font-semibold text-gray-800 ${(step === 4) && 'hidden'}`}>{STEPS[step as keyof typeof STEPS].title}</p>
               {(step === 3) && (
-                <p className="font-light mt-2 mb-4 text-sm">*Verifique se no local solicitado há restrição de horário para que nossa equipe faça a instalação.</p>
+                <p className="font-light mt-2 mb-4 text-sm">Sua fatura vai chegar apenas neste e-mail, mas pode ser acessada no App Vivo. Você não acumula papel e ainda ganha 3 GB de internet todo mês</p>
               )}
             </div>
 
@@ -458,7 +447,7 @@ function Index() {
             {(step === 2) && (
               <SecondStep customerData={customerData} form={form} step={step} />)}
 
-            {(step === 3) && (<ThirdStep form={form} />)}
+            {(step === 3) && (<ThirdStep form={form} customerData={customerData} />)}
 
             {(step === 4) && (<FourthStep form={form} />)}
 
