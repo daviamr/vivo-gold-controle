@@ -71,15 +71,12 @@ function Index() {
               <p className="text-2xl font-bold mb-2">Resumo do pedido: 1234</p>
               <div className="border rounded-sm py-4 text-left lg:min-h-[227px]">
                 <div className="px-4 pb-4">
-                  <p>{customer?.plan.plan} {customer?.plan?.fibra}</p>
-                  <p>Vivo Pós {customer?.plan?.pos} GB</p>
-                  {customer?.plan?.tv && (
-                    <p> {customer?.plan?.tv} Plano TV Tal</p>
-                  )}
+                  <p>{customer?.plan.name}</p>
+                  <p>Vivo Pós GB</p>
                   <p>6 meses de Amazon Prime cortesia</p>
                   <p>6 meses de HBO Max Básico Ads cortesia</p>
                 </div>
-                <p className="flex justify-between items-center border-t font-bold px-4 pt-4">Total: <span className="text-2xl">{formatToBRL(customer?.plan?.price || 0)}/mês</span></p>
+                <p className="flex justify-between items-center border-t font-bold px-4 pt-4">Total: <span className="text-2xl">{formatToBRL(customer?.plan?.pricing?.base_monthly || 0)}/mês</span></p>
               </div>
             </div>
 
