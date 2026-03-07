@@ -6,8 +6,7 @@ import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { withMask } from "use-mask-input"
 import { Button } from "@/components/ui/button"
-import { Loader, Wifi } from "lucide-react"
-import { Checkbox } from "@/components/ui/checkbox"
+import { Loader, Smartphone } from "lucide-react"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Customer } from "@/interface/Customer"
 import z from "zod"
@@ -29,6 +28,7 @@ export const checkoutPFPJSchema = z.object({
   email: z.string().optional(),
   mobileLine: z.string().optional(),
   mobileLineNumber: z.string().optional(),
+  eSim: z.boolean().optional(),
   // step 2
   cep: z.string().optional(),
   homeNumber: z.string().optional(),
@@ -95,6 +95,7 @@ function Index() {
       email: customerData?.firstStepData?.email || '',
       mobileLine: customerData?.firstStepData?.mobileLine || '',
       mobileLineNumber: customerData?.firstStepData?.mobileLineNumber || '',
+      eSim: customerData?.firstStepData?.eSim || true,
       //
       cep: customerData?.address?.cep || '',
       homeNumber: customerData?.address?.homeNumber || '',
@@ -117,8 +118,9 @@ function Index() {
       acceptOffers: customerData?.fourthStepData?.acceptOffers || false,
     },
   })
-  const { handleSubmit, formState: { errors }, setValue, setError, clearErrors, control, register, watch } = form
+  const { formState: { errors }, setValue, control, register, watch } = form
 
+  const eSim = watch('eSim')
   const watchMobileLine = watch('mobileLine')
 
   useEffect(() => {
@@ -156,6 +158,7 @@ function Index() {
       setValue('email', customerData?.firstStepData?.email || '')
       setValue('mobileLine', customerData?.firstStepData?.mobileLine || '')
       setValue('mobileLineNumber', customerData?.firstStepData?.mobileLineNumber || '')
+      setValue('eSim', customerData?.firstStepData?.eSim || true)
     }
 
     // Step 2
@@ -195,6 +198,7 @@ function Index() {
         email: data.email,
         ...(data.mobileLine && { mobileLine: data.mobileLine }),
         ...(data.mobileLineNumber && { mobileLineNumber: data.mobileLineNumber }),
+        eSim: data.eSim
       }
       const isValid = validateStep1(data, form.setError, form.clearErrors)
       if (!isValid) return
@@ -248,7 +252,6 @@ function Index() {
     }
 
     localStorage.setItem('customer', JSON.stringify(dataToSave))
-
     const nextStep = (step + 1)
     if (step < 4) {
       setStep(nextStep)
@@ -260,12 +263,12 @@ function Index() {
 
         const response = await vivoFibraAPI.createOrder(customerData)
 
-        console.log(response.disponibilidade)
+        console.log(response)
 
-        if (!response.disponibilidade)
-          return router.push(`/pf/unavailable`)
+        // if (!response.disponibilidade)
+        //   return router.push(`/pf/unavailable`)
 
-        return router.push(`/pf/available`)
+        // return router.push(`/pf/available`)
       } catch (error: any) {
         console.log(error)
       }
@@ -435,7 +438,15 @@ function Index() {
                       <p className="text-xs opacity-75 font-light mb-4">O <span className="font-bold">eSIM</span> substitui o chip físico e é prático e seguro. Vamos enviar as instruções de ativação por e-mail, é só seguir as etapas</p>
                     </div>
                     <div className="flex items-center gap-2 p-4 border rounded-sm">
-                      <Switch checked/>
+                      <Controller
+                        name='eSim'
+                        control={control}
+                        render={({ field }) => (
+                          <Switch
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                          />
+                        )} />
                       <Label className="text-sm font-normal">eSim</Label>
                     </div>
                   </div>
@@ -463,18 +474,27 @@ function Index() {
         <div className="bg-white p-4 rounded-sm py-8 h-max shadow-xs">
           <p className="text-2xl font-semibold text-gray-800 mb-4">Meu plano</p>
 
-          <div className="flex items-center justify-between">
-            <p className="flex items-center gap-2 font-light"> <Wifi size={18} /> {customerData?.plan?.plan} {customerData?.plan?.fibra}</p>
+          <div className="flex items-center justify-between border-b pb-4">
+            <p className="flex items-center gap-2 font-light"> <Smartphone size={18} /> {customerData?.plan?.name}</p>
 
             <p className="font-light">
-              {customerData?.plan?.price.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}/mês</p>
+              {customerData?.plan?.pricing?.base_monthly?.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}/mês</p>
           </div>
+
+          {eSim && (
+            <div className="flex items-center justify-between border-b py-4">
+              <p className="flex items-center gap-2 font-bold">Chip 4.5G</p>
+
+              <p className="font-bold uppercase">
+                Grátis</p>
+            </div>
+          )}
 
           <div className="flex items-center justify-between mt-4">
             <p className="flex items-center gap-2 font-light">Total</p>
 
             <p className="font-light">
-              {customerData?.plan?.price.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}/mês</p>
+              {customerData?.plan?.pricing.base_monthly.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}/mês</p>
           </div>
         </div>
 

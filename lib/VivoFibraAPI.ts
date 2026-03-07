@@ -1,10 +1,8 @@
 import { Customer } from "@/interface/Customer";
 import { api } from "./api"
-import { CreateOrderResponse } from "@/interface/Order";
-
 
 export class VivoFibraAPI {
-  async createOrder(data: Customer): Promise<CreateOrderResponse> {
+  async createOrder(data: Customer): Promise<any> {
     const payload = this.orderPayload(data)
     console.log('>>> payload', payload)
     const response = await api.post('pedidos-banda-larga',
@@ -14,26 +12,25 @@ export class VivoFibraAPI {
     return response.data
   }
 
+  async getPlans() {
+    try {
+      const response = await api.get('/vivo-controle')
+      console.log('>>> response', response.data)
+      return response.data
+    } catch (error) {
+      console.log(error)
+    }
+  }
+
   orderPayload(data: Customer) {
     const { firstStepData, address: secondStepData, thirdStepData, fourthStepData, plan } = data
+    const fingerprint = this.getFingerprint()
     return {
       "pedido": {
         "cep": secondStepData?.cep,
         "addressnumber": secondStepData?.homeNumber,
-        "typeclient": 'pf',
-        "plan": {
-          "name": plan?.fibra,
-          "quantity": 1,
-          "price": plan?.price
-        },
-        "fullname": firstStepData?.fullName,
-        "phone": this.onlyNumber(firstStepData?.tel || ''),
-        "email": firstStepData?.email,
-        "cpf": fourthStepData?.cpf,
         ...(secondStepData?.cnpj && { "cnpj": secondStepData?.cnpj }),
         ...(firstStepData?.companyName && { "razaosocial": firstStepData?.companyName }),
-        "birthdate": fourthStepData?.bornDate,
-        "motherfullname": fourthStepData?.motherName,
         ...(secondStepData?.block && { "addressblock": secondStepData?.block }),
         ...(secondStepData?.lot && { "addresslot": secondStepData?.lot }),
         "address": secondStepData?.street,
@@ -45,15 +42,95 @@ export class VivoFibraAPI {
         "addressreferencepoint":
           (secondStepData?.landmark ? secondStepData?.landmark :
             secondStepData?.floor ? secondStepData?.floor : ''),
+        "typeclient": 'pf',
+        "fullname": firstStepData?.fullName,
+        "phone": this.onlyNumber(firstStepData?.tel ?? ''),
+        "email": firstStepData?.email,
+        "cpf": fourthStepData?.cpf,
+        "birthdate": fourthStepData?.bornDate?.split(/[\/\-]/).reverse().join('-'),
+        "motherfullname": fourthStepData?.motherName ?? '',
         "dueday": thirdStepData?.dueDay,
-        "installation_preferred_date_one": thirdStepData?.primaryDate,
-        "installation_preferred_date_two": thirdStepData?.secondaryDate,
+        "installation_preferred_date_one": thirdStepData?.primaryDate ?? '',
+        "installation_preferred_date_two": thirdStepData?.secondaryDate ?? '',
         "terms_accepted": fourthStepData?.termsOfUse,
-        "ordernumber": 1234,
+        "accept_offers": fourthStepData?.acceptOffers,
         "url": fourthStepData?.url,
-        "accept_offers": fourthStepData?.acceptOffers
+        ...(fingerprint && { ...fingerprint }),
+        "client_ip": '123.456.789',
+        "planId": plan.id,
+        "extras": plan.extras
+          .filter(e => e.checked === true)
+          .map(e => ({ id: e.id, value: e.checked }))
       }
     }
+  }
+
+  getFingerprint() {
+    const ua = navigator.userAgent;
+
+    // OS
+    const getOS = () => {
+      if (/android/i.test(ua)) {
+        const version = ua.match(/Android\s([0-9.]+)/)?.[1] + '.0';
+        return { name: 'Android', version };
+      }
+      if (/iphone|ipad/i.test(ua)) {
+        const version = ua.match(/OS\s([0-9_]+)/)?.[1].replace(/_/g, '.');
+        return { name: 'iOS', version };
+      }
+      if (/windows/i.test(ua)) return { name: 'Windows', version: '10.0.0' };
+      if (/mac/i.test(ua)) return { name: 'MacOS', version: '10.0.0' };
+      if (/linux/i.test(ua)) return { name: 'Linux', version: '0.0.0' };
+      return { name: 'Unknown', version: '0.0.0' };
+    };
+
+    // Device
+    const getDevice = () => {
+      if (/mobile/i.test(ua)) return 'mobile';
+      if (/tablet/i.test(ua)) return 'tablet';
+      return 'desktop';
+    };
+
+    // Browser
+    const getBrowser = () => {
+      const browsers = [
+        { name: 'Chrome', regex: /Chrome\/([0-9.]+)/ },
+        { name: 'Firefox', regex: /Firefox\/([0-9.]+)/ },
+        { name: 'Safari', regex: /Version\/([0-9.]+).*Safari/ },
+        { name: 'Edge', regex: /Edg\/([0-9.]+)/ },
+      ];
+      for (const b of browsers) {
+        const match = ua.match(b.regex);
+        if (match) return { name: b.name, version: match[1] };
+      }
+      // fallback — pega o que vier no UA (ex: "Not(A:Brand")
+      const fallback = ua.match(/([A-Za-z]+)\/([0-9.]+)/);
+      return fallback
+        ? { name: fallback[1], version: fallback[2] }
+        : { name: 'Unknown', version: '0.0.0' };
+    };
+
+    // Timezone
+    const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    const timezoneOffset = new Date().getTimezoneOffset(); // ex: 180 para GMT-3
+
+    // Resolution
+    const resolution = {
+      dpr: window.devicePixelRatio,
+      width: window.screen.width,
+      height: window.screen.height,
+    };
+
+    return {
+      finger_print: {
+        os: getOS(),
+        device: getDevice(),
+        browser: getBrowser(),
+        timezone: `GMT${timezoneOffset > 0 ? '-' : '+'}${Math.abs(timezoneOffset / 60)}`,
+        resolution,
+        timezone_offset: timezoneOffset,
+      }
+    };
   }
 
   onlyNumber(value: string): string {

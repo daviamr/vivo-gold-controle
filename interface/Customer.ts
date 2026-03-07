@@ -1,8 +1,9 @@
 import { ViaCepResponse } from "@/lib/ViaCEP"
+import { IPlan } from "./Plan"
 
 export interface Customer {
   address: Address,
-  plan: Plan,
+  plan: IPlan,
   firstStepData?: FirstStepData,
   thirdStepData?: ThirdStepData,
   fourthStepData?: FourthStepData
@@ -25,23 +26,14 @@ type Address = ViaCepResponse & {
   floor?: string
 }
 
-type Plan = {
-  plan: string,
-  fibra: string,
-  pos: string,
-  price: number,
-  apps: boolean,
-  tv: boolean,
-  tel: boolean,
-}
-
 type FirstStepData = {
   fullName: string,
   tel: string,
   email: string,
   mobileLine?: string,
-  mobileLineNumber?: string
-  companyName?: string
+  mobileLineNumber?: string,
+  companyName?: string,
+  eSim?: boolean
 }
 
 type ThirdStepData = {
