@@ -15,9 +15,7 @@ function Index() {
   ]
   const ALERT = [
     { message: 'A Vivo nunca entra em contato solicitando dados bancários ou de cartão de crédito. Para sua segurança, nunca forneça estes dados.' },
-    { message: 'A Vivo nunca entra em contato para dizer que não há disponibilidade de Fibra na região da sua empresa.' },
-    { message: 'Caso a visita técnica necessite ser reagendada, ligaremos no telefone informado.' },
-    { message: 'Se você já tem internet e está mudando para Vivo, espere a instalação da Vivo Fibra antes de cancelar o serviço atual.' }
+    { message: 'Alguém acima de 18 anos precisa estar no local para receber o chip.' }
   ]
 
   useEffect(() => {
@@ -33,14 +31,16 @@ function Index() {
     }
   }, [])
 
+  console.log(customer)
+
   return (
     <div className="container m-auto px-4">
 
       <div className="grid gap-4 lg:grid-cols-2">
 
-        <div className="my-12 text-center">
+        <div className="my-12">
 
-          <div className="flex flex-col items-center gap-4">
+          <div className="flex items-center gap-4">
             <CircleCheck color="#6b4497" size={48} />
             <div>
               <h1 className="text-2xl font-bold">Seu pedido está quase concluído!</h1>
@@ -54,14 +54,14 @@ function Index() {
             <div className="grid gap-2 mt-4 text-left">
               <div className="flex gap-2 lg:items-center">
                 <MessageSquareMore color="#6b4497" size={32} className="shrink-0" />
-                <p>
+                <p className="text-sm">
                   <strong>Fique atento</strong>: você receberá um SMS com as instruções para fazer sua biometria e finalizar esta etapa.
                 </p>
               </div>
 
               <div className="flex gap-2 lg:items-center">
                 <Info color="#6b4497" size={32} className="shrink-0" />
-                <p>É necessário ter uma pessoa maior de 18 anos no local.</p>
+                <p className="text-sm">É necessário ter uma pessoa maior de 18 anos no local.</p>
               </div>
             </div>
           </div>
@@ -81,24 +81,18 @@ function Index() {
             </div>
 
             <div className="text-left mb-4">
-              <p className="text-2xl font-bold mb-2">Instalação:</p>
+            <p className="text-2xl font-bold mb-2">Detalhes:</p>
               <div className="border rounded-sm py-4 text-left">
                 <div className="px-4 pb-4">
-                  <p className="font-bold mb-2">Endereço da instalação:</p>
+                  <p className="font-bold mb-2">Endereço de entrega do chip:</p>
                   <p>{customer?.address.street}, {customer?.address.homeNumber}, {customer?.address.bairro} - {customer?.address.city}, {customer?.address.cep}</p>
                 </div>
 
                 <div className="border-t px-4 pt-4">
 
-                  <p className="font-bold mb-2">Pré-agendamento da instalação:</p>
+                  <p className="font-bold mb-2">Data de vencimento da fatura:</p>
                   <p className="flex justify-between">
-                    {addCurrentYear(customer?.thirdStepData?.primaryDate || '')}
-                    <span> {customer?.thirdStepData?.primaryPeriod === 'morning' ? 'Manhã' : 'Tarde'}
-                    </span>
-                  </p>
-                  <p className="flex justify-between">
-                    {addCurrentYear(customer?.thirdStepData?.secondaryDate || '')}
-                    <span>{customer?.thirdStepData?.secondaryPeriod === 'morning' ? 'Manhã' : 'Tarde'}</span>
+                    <span><strong>{customer?.thirdStepData?.dueDay}</strong></span>
                   </p>
                 </div>
               </div>

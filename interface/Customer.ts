@@ -33,7 +33,8 @@ type FirstStepData = {
   mobileLine?: string,
   mobileLineNumber?: string,
   companyName?: string,
-  eSim?: boolean
+  eSim?: boolean,
+  ddi?: string
 }
 
 type ThirdStepData = {

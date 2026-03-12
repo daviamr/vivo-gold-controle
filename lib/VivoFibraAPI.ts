@@ -5,11 +5,35 @@ export class VivoFibraAPI {
   async createOrder(data: Customer): Promise<any> {
     const payload = this.orderPayload(data)
     console.log('>>> payload', payload)
-    const response = await api.post('pedidos-banda-larga',
+    const response = await api.post('pedidos-vivo-controle',
       payload, { headers: { 'Content-Type': 'application/json' } })
 
     console.log('>>> response', response.data)
     return response.data
+  }
+
+  async verifyTel(ddi: string) {
+    if (!this.onlyNumber(ddi).startsWith('55')) return true;
+
+    const payload = {
+      telefone: this.onlyNumber(ddi)
+    }
+    const response = await api.post('verificar-telefone',
+      payload, { headers: { 'Content-Type': 'application/json' } })
+
+    console.log('>>> response verifyTel', response.data)
+    return response.data.numero_valido
+  }
+
+  async verifyEmail(email: string) {
+    const payload = {
+      email: email
+    }
+    const response = await api.post('verificar-email',
+      payload, { headers: { 'Content-Type': 'application/json' } })
+
+    console.log('>>> response verifyEmail', response.data)
+    return response.data.email_status
   }
 
   async getPlans() {

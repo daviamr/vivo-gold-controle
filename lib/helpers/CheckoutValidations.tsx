@@ -1,12 +1,27 @@
 import { UseFormClearErrors, UseFormSetError } from "react-hook-form"
 import { CPFValidator } from "./formatters"
+import { VivoFibraAPI } from "../VivoFibraAPI"
 
-export const validateStep1 = (
+const vivoControleAPI = new VivoFibraAPI()
+
+export const validateStep1 = async (
   data: CheckoutFormData,
   setError: UseFormSetError<CheckoutFormData>,
   clearErrors: UseFormClearErrors<CheckoutFormData>,
-): boolean => {
+): Promise<boolean> => {
   let hasError = false
+
+  const availableTel = async (ddi: string) => {
+    return await vivoControleAPI.verifyTel(ddi)
+  }
+  const availableEmail = async (email: string) => {
+    return await vivoControleAPI.verifyEmail(email)
+  }
+
+  if (await availableEmail(data.email!) !== 'VALIDO') {
+    setError('email', { message: 'Endereço de e-mail inexistente.' })
+    hasError = true
+  }
 
   if (!data.fullName?.trim() || data.fullName.trim().length < 2) {
     setError('fullName', { message: 'Informe seu nome completo.' })
@@ -24,24 +39,23 @@ export const validateStep1 = (
   if (!data.tel?.trim() || data.tel.trim().length < 4) {
     setError('tel', { message: 'Informe número de celular válido.' })
     hasError = true
-  } else if (!/^\(\d{2}\)\s\d\s\d{4}-\d{4}$/.test(data.tel)) {
-    setError('tel', { message: 'Celular inválido. Use o formato 00 0 0000-0000' })
+  } else if (
+    !/^\(\d{2}\) \d \d{4}-\d{4}$/.test(data.tel) && // Brasil
+    !/^\(\d{3}\) \d{3}-\d{4}$/.test(data.tel) &&    // EUA/Canadá
+    !/^\d{2} \d{4} \d{4}$/.test(data.tel) &&         // Reino Unido
+    !/^\d{3} \d{3} \d{3}$/.test(data.tel)            // Portugal
+  ) {
+    setError('tel', { message: 'Número de telefone inválido.' })
     hasError = true
-  } else { clearErrors('tel') }
-
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-  if (!data.email?.trim()) {
-    setError('email', { message: 'Informe um e-mail válido.' })
-    hasError = true
-  } else if (!emailRegex.test(data.email)) {
-    setError('email', { message: 'Informe um e-mail válido.' })
-    hasError = true
-  } else { clearErrors('email') }
-
-  if (!data.mobileLine?.trim()) {
-    setError('mobileLine', { message: 'Selecione uma opção válida.' })
-    hasError = true
-  } else { clearErrors('mobileLine') }
+  } else {
+    const telValido = await availableTel(data.tel)
+    if (!telValido) {
+      setError('tel', { message: 'Celular inválido, digite novamente.' })
+      hasError = true
+    } else {
+      clearErrors('tel')
+    }
+  }
 
   return !hasError
 }

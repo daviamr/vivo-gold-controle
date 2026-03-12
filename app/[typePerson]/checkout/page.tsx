@@ -29,6 +29,7 @@ export const checkoutPFPJSchema = z.object({
   mobileLine: z.string().optional(),
   mobileLineNumber: z.string().optional(),
   eSim: z.boolean().optional(),
+  ddi: z.string().optional(),
   // step 2
   cep: z.string().optional(),
   homeNumber: z.string().optional(),
@@ -96,6 +97,7 @@ function Index() {
       mobileLine: customerData?.firstStepData?.mobileLine || '',
       mobileLineNumber: customerData?.firstStepData?.mobileLineNumber || '',
       eSim: customerData?.firstStepData?.eSim || true,
+      ddi: customerData?.firstStepData?.ddi || '+55',
       //
       cep: customerData?.address?.cep || '',
       homeNumber: customerData?.address?.homeNumber || '',
@@ -119,6 +121,12 @@ function Index() {
     },
   })
   const { formState: { errors }, setValue, control, register, watch } = form
+  const DDI_OPTIONS = [
+    { label: '🇧🇷 +55', value: '+55', mask: '(99) 9 9999-9999' },  // ← sem +55
+    { label: '🇺🇸 +1', value: '+1', mask: '(999) 999-9999' },    // ← sem +1
+    { label: '🇬🇧 +44', value: '+44', mask: '99 9999 9999' },       // ← sem +44
+    { label: '🇵🇹 +351', value: '+351', mask: '999 999 999' },        // ← sem +351
+  ];
 
   const eSim = watch('eSim')
   const watchMobileLine = watch('mobileLine')
@@ -159,6 +167,7 @@ function Index() {
       setValue('mobileLine', customerData?.firstStepData?.mobileLine || '')
       setValue('mobileLineNumber', customerData?.firstStepData?.mobileLineNumber || '')
       setValue('eSim', customerData?.firstStepData?.eSim || true)
+      setValue('ddi', customerData?.firstStepData?.ddi || '+55')
     }
 
     // Step 2
@@ -198,9 +207,10 @@ function Index() {
         email: data.email,
         ...(data.mobileLine && { mobileLine: data.mobileLine }),
         ...(data.mobileLineNumber && { mobileLineNumber: data.mobileLineNumber }),
-        eSim: data.eSim
+        eSim: data.eSim,
+        ddi: data.ddi
       }
-      const isValid = validateStep1(data, form.setError, form.clearErrors)
+      const isValid = await validateStep1(data, form.setError, form.clearErrors)
       if (!isValid) return
       dataToSave = { ...customerData, firstStepData }
       localStorage.setItem('customer', JSON.stringify(dataToSave))
@@ -268,7 +278,7 @@ function Index() {
         // if (!response.disponibilidade)
         //   return router.push(`/pf/unavailable`)
 
-        // return router.push(`/pf/available`)
+        return router.push(`/pf/available`)
       } catch (error: any) {
         console.log(error)
       }
@@ -347,22 +357,61 @@ function Index() {
 
                   <div>
                     <Label className="text-1xl font-normal mb-1">Celular</Label>
-                    <Controller
-                      name="tel"
-                      control={control}
-                      render={({ field }) => (
-                        <Input
-                          type="text"
-                          value={field.value}
-                          onChange={field.onChange}
-                          ref={withMask('(99) 9 9999-9999', {
-                            placeholder: '',
-                            showMaskOnHover: false,
-                            showMaskOnFocus: false
-                          })} />
-                      )} />
-                    {errors.tel && (
-                      <p className="text-red-500 text-sm mt-1">{errors.tel.message}</p>)}
+                    <div className="flex gap-2">
+
+                      {/* Controller do DDI */}
+                      <Controller
+                        name="ddi"
+                        control={control}
+                        render={({ field }) => {
+                          const currentMask = DDI_OPTIONS.find(d => d.value === field.value)?.mask ?? '(99) 9 9999-9999';
+
+                          return (
+                            <>
+                              <Select
+                                key={field.value}
+                                value={field.value}
+                                onValueChange={(val) => {
+                                  field.onChange(val);
+                                  setValue('tel', '');
+                                }}>
+                                <SelectTrigger className="w-[110px]">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {DDI_OPTIONS.map(opt => (
+                                    <SelectItem key={opt.value} value={opt.value}>
+                                      {opt.label}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+
+                              {/* Controller do Tel usando a máscara do DDI atual */}
+                              <Controller
+                                name="tel"
+                                control={control}
+                                render={({ field: telField }) => (
+                                  <Input
+                                    type="text"
+                                    value={telField.value ?? ''}
+                                    onChange={(e) => telField.onChange(e.target.value)}
+                                    onBlur={telField.onBlur}
+                                    ref={withMask(currentMask, {
+                                      placeholder: '',
+                                      showMaskOnHover: false,
+                                      showMaskOnFocus: false,
+                                    })}
+                                  />
+                                )}
+                              />
+                            </>
+                          );
+                        }}
+                      />
+
+                    </div>
+                    {errors.tel && <p className="text-red-500 text-sm mt-1">{errors.tel.message}</p>}
                   </div>
 
                   <div className="lg:col-span-2">
@@ -460,7 +509,7 @@ function Index() {
 
             {(step === 3) && (<ThirdStep form={form} customerData={customerData} />)}
 
-            {(step === 4) && (<FourthStep form={form} />)}
+            {(step === 4) && (<FourthStep form={form} ddiOptions={DDI_OPTIONS}/>)}
 
             <Button
               variant={'vivo'}

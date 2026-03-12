@@ -5,9 +5,10 @@ import { Input } from "../ui/input";
 import { Label } from "../ui/label";
 import { Checkbox } from "../ui/checkbox";
 import { Controller, UseFormReturn } from "react-hook-form";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 
-function Index({ form }: SecondStepProps) {
-  const { formState: { errors }, control } = form
+function Index({ form, ddiOptions }: SecondStepProps) {
+  const { formState: { errors }, control, setValue } = form
 
   return (
     <div className="mt-8">
@@ -65,20 +66,54 @@ function Index({ form }: SecondStepProps) {
         <div className="lg:col-span-2">
           <Label className="text-1xl font-normal mb-1" htmlFor="primaryTel">Telefone Principal</Label>
           <Controller
-            name="primaryTel"
+            name="ddi"
             control={control}
-            render={({ field }) => (
-              <Input
-                id="primaryTel"
-                type="text"
-                value={field.value || ''}
-                onChange={field.onChange}
-                ref={withMask('(99) 9 9999-9999', {
-                  placeholder: '',
-                  showMaskOnHover: false,
-                  showMaskOnFocus: false
-                })} />
-            )} />
+            render={({ field }) => {
+              const currentMask = ddiOptions?.find(d => d.value === field.value)?.mask ?? '(99) 9 9999-9999';
+
+              return (
+                <div className="flex items-center gap-2">
+                  <Select
+                    key={field.value}
+                    value={field.value}
+                    onValueChange={(val) => {
+                      field.onChange(val);
+                      setValue('tel', '');
+                    }}>
+                    <SelectTrigger className="w-[110px]">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {ddiOptions?.map(opt => (
+                        <SelectItem key={opt.value} value={opt.value}>
+                          {opt.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+
+                  {/* Controller do Tel usando a máscara do DDI atual */}
+                  <Controller
+                    name="primaryTel"
+                    control={control}
+                    render={({ field: telField }) => (
+                      <Input
+                        type="text"
+                        value={telField.value ?? ''}
+                        onChange={(e) => telField.onChange(e.target.value)}
+                        onBlur={telField.onBlur}
+                        ref={withMask(currentMask, {
+                          placeholder: '',
+                          showMaskOnHover: false,
+                          showMaskOnFocus: false,
+                        })}
+                      />
+                    )}
+                  />
+                </div>
+              );
+            }}
+          />
           {errors.primaryTel && (
             <p className="text-red-500 text-sm mt-1">{String(errors.primaryTel.message)}</p>)}
         </div>
@@ -146,4 +181,9 @@ export default Index
 
 type SecondStepProps = {
   form: UseFormReturn<any>,
+  ddiOptions?: {
+    label: string,
+    value: string,
+    mask: string
+  }[]
 }

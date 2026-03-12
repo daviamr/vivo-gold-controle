@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import Header from '../../components/layout/Header'
 import DefaultLayout from '../../components/layout/DefaultLayout'
-import ConditionalModal from "../../components/conditional-modal/ConditionalModal";
 
 export const metadata: Metadata = {
   title: 'Vivo Fibra - A Melhor Internet Banda Larga da América Latina',
@@ -12,7 +11,6 @@ export const metadata: Metadata = {
 export default function TypePersonLayout({ children }: PersonLayoutProps) {
   return (
     <>
-      <ConditionalModal />
       <Header />
       <DefaultLayout>
         {children}
