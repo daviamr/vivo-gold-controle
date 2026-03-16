@@ -5,7 +5,7 @@ export class VivoFibraAPI {
   async createOrder(data: Customer): Promise<any> {
     const payload = this.orderPayload(data)
     console.log('>>> payload', payload)
-    const response = await api.post('pedidos-vivo-controle',
+    const response = await api.post('pedido-telefonia-movel',
       payload, { headers: { 'Content-Type': 'application/json' } })
 
     console.log('>>> response', response.data)
@@ -38,7 +38,7 @@ export class VivoFibraAPI {
 
   async getPlans() {
     try {
-      const response = await api.get('/vivo-controle')
+      const response = await api.get('/planos/telefonia-movel')
       console.log('>>> response', response.data)
       return response.data
     } catch (error) {
@@ -81,6 +81,9 @@ export class VivoFibraAPI {
         "url": fourthStepData?.url,
         ...(fingerprint && { ...fingerprint }),
         "client_ip": '123.456.789',
+        "line_action": 'port_in_to_vivo',
+        "line_number_informed": firstStepData?.mobileLineNumber,
+        "wants_esim": firstStepData?.eSim,
         "planId": plan.id,
         "extras": plan.extras
           .filter(e => e.checked === true)

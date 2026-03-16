@@ -205,8 +205,8 @@ function Index() {
         fullName: data.fullName,
         tel: data.tel,
         email: data.email,
-        ...(data.mobileLine && { mobileLine: data.mobileLine }),
-        ...(data.mobileLineNumber && { mobileLineNumber: data.mobileLineNumber }),
+        mobileLine: data.mobileLine,
+        mobileLineNumber: data.mobileLineNumber,
         eSim: data.eSim,
         ddi: data.ddi
       }
@@ -431,7 +431,10 @@ function Index() {
                       name="mobileLine"
                       control={control}
                       render={({ field }) => (
-                        <Select onValueChange={field.onChange} value={field.value}>
+                        <Select
+                          key={field.value}
+                          onValueChange={field.onChange}
+                          value={field.value}>
                           <SelectTrigger id="mobileLine" className="w-full">
                             <SelectValue placeholder="Selecione" />
                           </SelectTrigger>
@@ -509,7 +512,7 @@ function Index() {
 
             {(step === 3) && (<ThirdStep form={form} customerData={customerData} />)}
 
-            {(step === 4) && (<FourthStep form={form} ddiOptions={DDI_OPTIONS}/>)}
+            {(step === 4) && (<FourthStep form={form} ddiOptions={DDI_OPTIONS} />)}
 
             <Button
               variant={'vivo'}
