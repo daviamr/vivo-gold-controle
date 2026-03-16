@@ -43,7 +43,7 @@ export const validateStep1 = async (
     !/^\(\d{2}\) \d \d{4}-\d{4}$/.test(data.tel) && // Brasil
     !/^\(\d{3}\) \d{3}-\d{4}$/.test(data.tel) &&    // EUA/Canadá
     !/^\d{2} \d{4} \d{4}$/.test(data.tel) &&         // Reino Unido
-    !/^\d{3} \d{3} \d{3}$/.test(data.tel)            // Portugal
+    !/^\d{3} \d{3} \d{3}$/.test(data.tel)            // Portugal 
   ) {
     setError('tel', { message: 'Número de telefone inválido.' })
     hasError = true
