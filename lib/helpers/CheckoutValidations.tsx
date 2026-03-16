@@ -11,8 +11,8 @@ export const validateStep1 = async (
 ): Promise<boolean> => {
   let hasError = false
 
-  const availableTel = async (ddi: string) => {
-    return await vivoControleAPI.verifyTel(ddi)
+  const availableTel = async (ddi: string, tel: string) => {
+    return await vivoControleAPI.verifyTel(ddi, tel)
   }
   const availableEmail = async (email: string) => {
     return await vivoControleAPI.verifyEmail(email)
@@ -48,7 +48,7 @@ export const validateStep1 = async (
     setError('tel', { message: 'Número de telefone inválido.' })
     hasError = true
   } else {
-    const telValido = await availableTel(data.tel)
+    const telValido = await availableTel(data.ddi!, data.tel)
     if (!telValido) {
       setError('tel', { message: 'Celular inválido, digite novamente.' })
       hasError = true
@@ -179,6 +179,7 @@ export type CheckoutFormData = {
   tel?: string,
   email?: string,
   mobileLine?: string,
+  ddi?: string,
   //
   cep?: string
   homeNumber?: string

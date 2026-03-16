@@ -12,11 +12,11 @@ export class VivoFibraAPI {
     return response.data
   }
 
-  async verifyTel(ddi: string) {
+  async verifyTel(ddi: string, tel: string) {
     if (!this.onlyNumber(ddi).startsWith('55')) return true;
 
     const payload = {
-      telefone: this.onlyNumber(ddi)
+      telefone: this.onlyNumber(tel)
     }
     const response = await api.post('verificar-telefone',
       payload, { headers: { 'Content-Type': 'application/json' } })
