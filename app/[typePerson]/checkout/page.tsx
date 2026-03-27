@@ -439,13 +439,13 @@ function Index() {
                             <SelectValue placeholder="Selecione" />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="newNumber">
+                            <SelectItem value="new_number">
                               Adquirir um novo número Vivo
                             </SelectItem>
-                            <SelectItem value="transferNumber">
+                            <SelectItem value="port_in_to_vivo">
                               Transferir meu número pra Vivo
                             </SelectItem>
-                            <SelectItem value="keepNumber">
+                            <SelectItem value="keep_vivo_number">
                               Manter meu número Vivo
                             </SelectItem>
                           </SelectContent>
@@ -455,8 +455,8 @@ function Index() {
                       <p className="text-red-500 text-sm mt-1">{errors.mobileLine.message}</p>)}
                   </div>
 
-                  {(watchMobileLine === 'transferNumber' ||
-                    watchMobileLine === 'keepNumber') && (
+                  {(watchMobileLine === 'port_in_to_vivo' ||
+                    watchMobileLine === 'keep_vivo_number') && (
                       <div>
                         <Label className="text-sm font-normal mb-1 mt-4">Número</Label>
                         <Controller

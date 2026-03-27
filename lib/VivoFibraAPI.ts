@@ -81,7 +81,7 @@ export class VivoFibraAPI {
         "url": fourthStepData?.url,
         ...(fingerprint && { ...fingerprint }),
         "client_ip": '123.456.789',
-        "line_action": 'port_in_to_vivo',
+        "line_action": firstStepData?.mobileLine,
         "line_number_informed": firstStepData?.mobileLineNumber,
         "wants_esim": firstStepData?.eSim,
         "planId": plan.id,
