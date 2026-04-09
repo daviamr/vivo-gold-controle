@@ -8,7 +8,7 @@ export const metadata: Metadata = {
   icons: '/favicon.ico'
 };
 
-export default function TypePersonLayout({ children }: PersonLayoutProps) {
+export default function PfLayout({ children }: { children: React.ReactNode }) {
   return (
     <>
       <Header />
@@ -17,8 +17,4 @@ export default function TypePersonLayout({ children }: PersonLayoutProps) {
       </DefaultLayout>
     </>
   )
-}
-
-type PersonLayoutProps = {
-  children: React.ReactNode,
 }

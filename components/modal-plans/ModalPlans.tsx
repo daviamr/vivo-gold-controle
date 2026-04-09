@@ -23,7 +23,7 @@ function Index() {
 						variant={'vivo'}
 						className="text-white py-8 text-xl"
 						asChild>
-						<Link href={'/pj'}>
+						<Link href={'/pf'}>
 							Minha Empresa
 						</Link>
 					</Button>

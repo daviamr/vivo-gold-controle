@@ -38,7 +38,7 @@ export class VivoFibraAPI {
 
   async getPlans() {
     try {
-      const response = await api.get('/planos/telefonia-movel')
+      const response = await api.get('/planos/telefonia-movel?landing_page=vivo_controle')
       console.log('>>> response', response.data)
       return response.data
     } catch (error) {

@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from "react"
+import { Suspense, useEffect, useState } from "react"
 import CheckoutSteps from '../../../components/checkout-steps/CheckoutSteps'
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
@@ -556,4 +556,16 @@ function Index() {
   )
 }
 
-export default Index
+function CheckoutPage() {
+  return (
+    <Suspense fallback={
+      <div className="h-[calc(100vh-76px)] flex justify-center items-center">
+        <Loader className="animate-spin" size={48} color="purple" />
+      </div>
+    }>
+      <Index />
+    </Suspense>
+  )
+}
+
+export default CheckoutPage

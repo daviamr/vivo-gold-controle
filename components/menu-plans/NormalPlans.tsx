@@ -38,14 +38,13 @@ function Index() {
     },
   })
   const { handleSubmit, formState: { errors }, register, watch } = form
-  console.log(plans)
 
   const handleCheckout = (plan: IPlan) => {
     const customerData = localStorage.getItem('customer')
     const customer = customerData ? JSON.parse(customerData) : {}
     const dataToSave = { ...customer, plan }
     localStorage.setItem('customer', JSON.stringify(dataToSave))
-    router.push(`pf/checkout?step=1`)
+    router.push('/pf/checkout?step=1')
   }
 
   const vivoControlePlans = async () => {
