@@ -6,7 +6,11 @@ export interface Customer {
   plan: IPlan,
   firstStepData?: FirstStepData,
   thirdStepData?: ThirdStepData,
-  fourthStepData?: FourthStepData
+  fourthStepData?: FourthStepData,
+  /** ID do pedido retornado na consulta do plano (salvamento progressivo) */
+  orderId?: number,
+  /** Número do pedido após finalização com sucesso */
+  orderNumber?: string,
 }
 
 type Address = ViaCepResponse & {
@@ -19,6 +23,7 @@ type Address = ViaCepResponse & {
   hasBlockAndLot?: boolean,
   block?: string,
   lot?: string,
+  complement?: string,
   TVPlan?: string,
   typeInstalation?: string,
   cnpj?: string,

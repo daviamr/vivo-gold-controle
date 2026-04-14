@@ -68,7 +68,7 @@ function Index() {
 
           <div className="grid gap-4 lg:grid-cols-2 my-4">
             <div className="text-left">
-              <p className="text-2xl font-bold mb-2">Resumo do pedido: 1234</p>
+              <p className="text-2xl font-bold mb-2">Resumo do pedido: {customer?.orderNumber ?? '—'}</p>
               <div className="border rounded-sm py-4 text-left lg:min-h-[227px]">
                 <div className="px-4 pb-4">
                   <p>{customer?.plan.name}</p>

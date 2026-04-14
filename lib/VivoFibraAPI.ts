@@ -1,15 +1,209 @@
 import { Customer } from "@/interface/Customer";
+import { IPlan } from "@/interface/Plan";
 import { api } from "./api"
 
-export class VivoFibraAPI {
-  async createOrder(data: Customer): Promise<any> {
-    const payload = this.orderPayload(data)
-    console.log('>>> payload', payload)
-    const response = await api.post('pedido-telefonia-movel',
-      payload, { headers: { 'Content-Type': 'application/json' } })
+const TELEFONIA_ORDER_PATH = "pedido-telefonia-movel"
 
-    console.log('>>> response', response.data)
+type PlanExtra = {
+  id: string
+  price: number
+  title: string
+  default_checked: boolean
+  checked?: boolean
+}
+
+export class VivoFibraAPI {
+
+  /** API às vezes envia `extras` como objeto único ou omite o campo. */
+  static normalizePlanExtras(extras: unknown): PlanExtra[] {
+    if (extras == null) return []
+    if (Array.isArray(extras)) return extras as PlanExtra[]
+    if (typeof extras === "object") return [extras as PlanExtra]
+    return []
+  }
+
+  /** Cria pedido parcial na consulta do plano (consulta: 1, pedido: 0, ABERTO). */
+  async saveConsultOrder(plan: IPlan, mobileLine?: string): Promise<any> {
+    const payload = this.buildConsultOrderPayload(plan, mobileLine)
+    console.log('>>> payload', payload)
+    const response = await api.post(TELEFONIA_ORDER_PATH,
+      payload, { headers: { 'Content-Type': 'application/json' } })
     return response.data
+  }
+
+  /** Atualiza o pedido em cada etapa do checkout (PATCH). */
+  async updateOrderProgress(orderId: number, partial: Record<string, unknown>): Promise<any> {
+    const response = await api.put(
+      `${TELEFONIA_ORDER_PATH}/${orderId}`,
+      partial,
+      { headers: { 'Content-Type': 'application/json' } }
+    )
+    return response.data
+  }
+
+  static extractOrderId(data: unknown): number | undefined {
+    if (!data || typeof data !== "object") return undefined
+    const o = data as Record<string, unknown>
+    const nested = o.order && typeof o.order === "object" ? (o.order as Record<string, unknown>).id : undefined
+    const id = nested ?? o.id ?? o.order_id
+    return typeof id === "number" ? id : undefined
+  }
+
+  static extractOrderNumber(data: unknown): string | undefined {
+    if (!data || typeof data !== "object") return undefined
+    const o = data as Record<string, unknown>
+    const nested = o.order && typeof o.order === "object"
+      ? (o.order as Record<string, unknown>).order_number
+      : undefined
+    const num = nested ?? o.order_number ?? o.numero_pedido
+    return typeof num === "string" ? num : undefined
+  }
+
+  buildConsultOrderPayload(plan: IPlan, mobileLine?: string) {
+    const now = this.brDateTime()
+    const baseMonthly = plan.pricing.base_monthly
+    const installationFee = plan.pricing.installation ?? 0
+    const additionalsMonthly = this.additionalsMonthlyTotal(plan)
+    const extrasList = VivoFibraAPI.normalizePlanExtras(plan.extras)
+    const lineAction = mobileLine ?? ""
+    return {
+      pedido: {
+        status: "ABERTO",
+        client_type: "PF",
+        landing_page: "vivo_controle",
+        client_ip: "",
+        fingerprint: "",
+        consulta: 1,
+        pedido: 0,
+        url: typeof window !== "undefined" ? window.location.href : "",
+        line_action: lineAction,
+        created_at: now,
+        updated_at: now,
+        plan: {
+          id: plan.id,
+          category: plan.category,
+          plan_name: plan.name,
+          base_price: baseMonthly,
+          landing_page: "vivo_controle",
+          selected_additionals: extrasList
+            .filter((e) => e.checked === true)
+            .map((e) => ({ id: e.id, title: e.title, price: e.price })),
+        },
+        price_summary: {
+          total: baseMonthly + additionalsMonthly,
+          currency: "BRL",
+          base_monthly: baseMonthly,
+          installation_fee: installationFee,
+          additionals_monthly: additionalsMonthly,
+        }
+      },
+    }
+  }
+
+  buildStep1Payload(args: {
+    fullName: string
+    tel: string
+    email: string
+    mobileLine?: string
+    mobileLineNumber?: string
+    eSim?: boolean
+    ddi?: string
+  }) {
+    return {
+      pedido: {
+        full_name: args.fullName,
+        phone: this.buildPhoneWithCountry(args.ddi, args.tel),
+        email: args.email,
+        pedido: 1,
+        line_action: args.mobileLine ?? "",
+        ...(args.mobileLineNumber
+          ? { line_number_informed: this.onlyNumber(args.mobileLineNumber) }
+          : {}),
+        wants_esim: args.eSim ? 1 : 0,
+      }
+    }
+  }
+
+  buildStep2Payload(addr: Customer["address"]) {
+    const building =
+      addr.liveIn === "house" ? "house" : addr.liveIn === "building" ? "building" : addr.liveIn ?? ""
+    const body: { pedido: Record<string, unknown> } = {
+      pedido: {
+        cep: addr.cep,
+        address: addr.street ?? addr.logradouro ?? "",
+        addressnumber: addr.homeNumber,
+        district: addr.district ?? addr.bairro ?? "",
+        city: addr.city ?? addr.localidade ?? "",
+        state: addr.uf ?? "",
+        buildingorhouse: building,
+      }
+    }
+    if (addr.block) body.pedido.addressblock = addr.block
+    if (addr.lot) body.pedido.addresslot = addr.lot
+    const complement = addr.complement ?? addr.complemento
+    if (complement) body.pedido.addresscomplement = complement
+    if (addr.landmark) body.pedido.addressreferencepoint = addr.landmark
+    if (addr.floor) body.pedido.addressFloor = addr.floor
+    return body
+  }
+
+  buildStep3Payload(dueDay: string) {
+    const n = parseInt(dueDay, 10)
+    return { pedido: { dueday: Number.isFinite(n) ? n : dueDay } }
+  }
+
+  buildStep4Payload(args: {
+    cpf: string
+    bornDate: string
+    primaryTel: string
+    secondaryTel?: string
+    ddi?: string
+    termsOfUse?: boolean
+    acceptOffers?: boolean
+    orderNumber?: string
+  }) {
+    const body: { pedido: Record<string, unknown> } = {
+      pedido: {
+        cpf: this.onlyNumber(args.cpf),
+        birthdate: args.bornDate,
+        phone: this.buildPhoneWithCountry(args.ddi, args.primaryTel),
+        terms_accepted: args.termsOfUse ? 1 : 0,
+        accept_offers: args.acceptOffers ? 1 : 0,
+        status: "FECHADO",
+      }
+    }
+    if (args.secondaryTel) {
+      body.pedido.phoneAdditional = this.onlyNumber(args.secondaryTel)
+    }
+    if (args.orderNumber) {
+      body.pedido.order_number = args.orderNumber
+    }
+    return body
+  }
+
+  buildPhoneWithCountry(ddi: string | undefined, nationalNumber: string): string {
+    const digits = this.onlyNumber(nationalNumber)
+    const ddiDigits = this.onlyNumber(ddi ?? "55")
+    if (digits.startsWith(ddiDigits)) return digits
+    return `${ddiDigits}${digits}`
+  }
+
+  additionalsMonthlyTotal(plan: IPlan): number {
+    return VivoFibraAPI.normalizePlanExtras(plan.extras)
+      .filter((e) => e.checked === true)
+      .reduce((sum, e) => sum + (Number(e.price) || 0), 0)
+  }
+
+  brDateTime(): string {
+    return new Date().toLocaleString("pt-BR", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hour12: false,
+    })
   }
 
   async verifyTel(ddi: string, tel: string) {
@@ -43,52 +237,6 @@ export class VivoFibraAPI {
       return response.data
     } catch (error) {
       console.log(error)
-    }
-  }
-
-  orderPayload(data: Customer) {
-    const { firstStepData, address: secondStepData, thirdStepData, fourthStepData, plan } = data
-    const fingerprint = this.getFingerprint()
-    return {
-      "pedido": {
-        "cep": secondStepData?.cep,
-        "addressnumber": secondStepData?.homeNumber,
-        ...(secondStepData?.cnpj && { "cnpj": secondStepData?.cnpj }),
-        ...(firstStepData?.companyName && { "razaosocial": firstStepData?.companyName }),
-        ...(secondStepData?.block && { "addressblock": secondStepData?.block }),
-        ...(secondStepData?.lot && { "addresslot": secondStepData?.lot }),
-        "address": secondStepData?.street,
-        "district": secondStepData?.district,
-        "city": secondStepData?.city,
-        "state": secondStepData?.uf,
-        "buildingorhouse": secondStepData?.liveIn === 'house' ? 2 : 1,
-        "addresscomplement": secondStepData?.complemento,
-        "addressreferencepoint":
-          (secondStepData?.landmark ? secondStepData?.landmark :
-            secondStepData?.floor ? secondStepData?.floor : ''),
-        "typeclient": 'pf',
-        "fullname": firstStepData?.fullName,
-        "phone": this.onlyNumber(firstStepData?.tel ?? ''),
-        "email": firstStepData?.email,
-        "cpf": fourthStepData?.cpf,
-        "birthdate": fourthStepData?.bornDate?.split(/[\/\-]/).reverse().join('-'),
-        "motherfullname": fourthStepData?.motherName ?? '',
-        "dueday": thirdStepData?.dueDay,
-        "installation_preferred_date_one": thirdStepData?.primaryDate ?? '',
-        "installation_preferred_date_two": thirdStepData?.secondaryDate ?? '',
-        "terms_accepted": fourthStepData?.termsOfUse,
-        "accept_offers": fourthStepData?.acceptOffers,
-        "url": fourthStepData?.url,
-        ...(fingerprint && { ...fingerprint }),
-        "client_ip": '123.456.789',
-        "line_action": firstStepData?.mobileLine,
-        "line_number_informed": firstStepData?.mobileLineNumber,
-        "wants_esim": firstStepData?.eSim,
-        "planId": plan.id,
-        "extras": plan.extras
-          .filter(e => e.checked === true)
-          .map(e => ({ id: e.id, value: e.checked }))
-      }
     }
   }
 

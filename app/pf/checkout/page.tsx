@@ -190,98 +190,167 @@ function Index() {
     if (step === 4) {
       setValue('cpf', customerData?.fourthStepData?.cpf || '')
       setValue('bornDate', customerData?.fourthStepData?.bornDate || '')
+      setValue('ddi', customerData?.firstStepData?.ddi || '+55')
       setValue('primaryTel', customerData?.firstStepData?.tel || '')
       setValue('secondaryTel', customerData?.fourthStepData?.secondaryTel || '')
       setValue('termsOfUse', customerData?.fourthStepData?.termsOfUse || false)
     }
   }, [step, customerData, setValue])
 
+  const ensureOrderId = async (cust: Customer | null): Promise<number | undefined> => {
+    if (cust?.orderId) return cust.orderId
+    if (!cust?.plan) return undefined
+    try {
+      const res = await vivoFibraAPI.saveConsultOrder(
+        cust.plan,
+        cust.firstStepData?.mobileLine,
+      )
+      return VivoFibraAPI.extractOrderId(res)
+    } catch (e) {
+      console.error('Erro ao registrar pedido (consulta):', e)
+      return undefined
+    }
+  }
+
   const onSubmit = async (data: CheckoutFormData) => {
-    console.log('entrou')
-    let dataToSave
-
-    if (step === 1) {
-      const firstStepData = {
-        fullName: data.fullName,
-        tel: data.tel,
-        email: data.email,
-        mobileLine: data.mobileLine,
-        mobileLineNumber: data.mobileLineNumber,
-        eSim: data.eSim,
-        ddi: data.ddi
-      }
-      const isValid = await validateStep1(data, form.setError, form.clearErrors)
-      if (!isValid) return
-      dataToSave = { ...customerData, firstStepData }
-      localStorage.setItem('customer', JSON.stringify(dataToSave))
+    if (!customerData) {
+      console.error('Dados do cliente não encontrados')
+      return
     }
 
-    if (step === 2) {
-      const secondStepData = {
-        ...customerData?.address,
-        cep: data.cep,
-        homeNumber: data.homeNumber,
-        street: data.street,
-        district: data.district,
-        city: data.city,
-        uf: data.uf,
-        liveIn: data.liveIn,
-        complement: data.complement,
-        ...(data.landmark && { landmark: data.landmark }),
-        ...(data.floor && { floor: data.floor }),
-        ...(data.block && { landmark: data.block }),
-        ...(data.lot && { floor: data.lot }),
-      }
-      dataToSave = { ...customerData, address: { ...secondStepData } }
-      const isValid = validateStep2(data, form.setError, form.clearErrors)
-      if (!isValid) return
+    const orderId = customerData.orderId ?? (await ensureOrderId(customerData))
+    if (!orderId) {
+      form.setError('email', {
+        message: 'Não foi possível sincronizar o pedido. Volte e selecione o plano novamente.',
+      })
+      return
     }
 
-    if (step === 3) {
-      const thirdStepData = {
-        dueDay: data.dueDay,
+    let dataToSave: Customer = { ...customerData, orderId }
+
+    try {
+      if (step === 1) {
+        const isValid = await validateStep1(data, form.setError, form.clearErrors)
+        if (!isValid) return
+
+        const firstStepData = {
+          fullName: data.fullName!,
+          tel: data.tel!,
+          email: data.email!,
+          mobileLine: data.mobileLine,
+          mobileLineNumber: data.mobileLineNumber,
+          eSim: data.eSim,
+          ddi: data.ddi
+        }
+        dataToSave = { ...customerData, firstStepData, orderId }
+        await vivoFibraAPI.updateOrderProgress(
+          orderId,
+          vivoFibraAPI.buildStep1Payload({
+            fullName: firstStepData.fullName,
+            tel: firstStepData.tel,
+            email: firstStepData.email,
+            mobileLine: firstStepData.mobileLine,
+            mobileLineNumber: firstStepData.mobileLineNumber,
+            eSim: firstStepData.eSim,
+            ddi: firstStepData.ddi,
+          }),
+        )
+        localStorage.setItem('customer', JSON.stringify(dataToSave))
+        const nextStep = step + 1
+        setStep(nextStep)
+        setStepQuery(nextStep)
+        return
       }
-      dataToSave = { ...customerData, thirdStepData }
-      const isValid = validateStep3(data, form.setError, form.clearErrors)
-      if (!isValid) return
-    }
 
-    if (step === 4) {
-      const fourthStepData = {
-        cpf: data.cpf,
-        bornDate: data.bornDate,
-        primaryTel: data.primaryTel,
-        secondaryTel: data.secondaryTel,
-        termsOfUse: data.termsOfUse,
-        acceptOffers: data.acceptOffers,
-        url: window.location.href
+      if (step === 2) {
+        const isValid = validateStep2(data, form.setError, form.clearErrors)
+        if (!isValid) return
+
+        const secondStepData = {
+          ...(customerData.address ?? {}),
+          cep: data.cep!,
+          homeNumber: data.homeNumber!,
+          street: data.street,
+          district: data.district,
+          city: data.city,
+          uf: data.uf,
+          liveIn: data.liveIn,
+          complement: data.complement,
+          landmark: data.landmark,
+          floor: data.floor,
+          hasBlockAndLot: data.hasBlockAndLot,
+          block: data.block,
+          lot: data.lot,
+        }
+        dataToSave = { ...customerData, address: secondStepData as Customer["address"], orderId }
+        await vivoFibraAPI.updateOrderProgress(
+          orderId,
+          vivoFibraAPI.buildStep2Payload(secondStepData as Customer["address"]),
+        )
+        localStorage.setItem('customer', JSON.stringify(dataToSave))
+        const nextStep = step + 1
+        setStep(nextStep)
+        setStepQuery(nextStep)
+        return
       }
-      dataToSave = { ...customerData, fourthStepData }
-      const isValid = validateStep4(data, form.setError, form.clearErrors)
-      if (!isValid) return
-    }
 
-    localStorage.setItem('customer', JSON.stringify(dataToSave))
-    const nextStep = (step + 1)
-    if (step < 4) {
-      setStep(nextStep)
-      setStepQuery(nextStep)
-    } else {
-      try {
-        if (!customerData)
-          return console.error('>>> dados do cliente não encontrados')
+      if (step === 3) {
+        const isValid = validateStep3(data, form.setError, form.clearErrors)
+        if (!isValid) return
 
-        const response = await vivoFibraAPI.createOrder(customerData)
+        const thirdStepData = {
+          dueDay: data.dueDay!,
+          primaryDate: customerData.thirdStepData?.primaryDate ?? "",
+          primaryPeriod: customerData.thirdStepData?.primaryPeriod ?? "",
+          secondaryDate: customerData.thirdStepData?.secondaryDate,
+          secondaryPeriod: customerData.thirdStepData?.secondaryPeriod,
+        }
+        dataToSave = { ...customerData, thirdStepData, orderId }
+        await vivoFibraAPI.updateOrderProgress(orderId, vivoFibraAPI.buildStep3Payload(data.dueDay!))
+        localStorage.setItem('customer', JSON.stringify(dataToSave))
+        const nextStep = step + 1
+        setStep(nextStep)
+        setStepQuery(nextStep)
+        return
+      }
 
-        console.log(response)
+      if (step === 4) {
+        const isValid = validateStep4(data, form.setError, form.clearErrors)
+        if (!isValid) return
 
-        // if (!response.disponibilidade)
-        //   return router.push(`/pf/unavailable`)
-
+        const fourthStepData = {
+          cpf: data.cpf!,
+          bornDate: data.bornDate!,
+          motherName: customerData.fourthStepData?.motherName ?? "",
+          primaryTel: data.primaryTel!,
+          secondaryTel: data.secondaryTel,
+          termsOfUse: data.termsOfUse,
+          acceptOffers: data.acceptOffers,
+          url: window.location.href
+        }
+        dataToSave = { ...customerData, fourthStepData, orderId }
+        const response = await vivoFibraAPI.updateOrderProgress(
+          orderId,
+          vivoFibraAPI.buildStep4Payload({
+            cpf: fourthStepData.cpf,
+            bornDate: fourthStepData.bornDate,
+            primaryTel: fourthStepData.primaryTel,
+            secondaryTel: fourthStepData.secondaryTel,
+            ddi: data.ddi,
+            termsOfUse: fourthStepData.termsOfUse,
+            acceptOffers: fourthStepData.acceptOffers,
+          }),
+        )
+        const orderNumber = VivoFibraAPI.extractOrderNumber(response)
+        const finalCustomer: Customer = {
+          ...dataToSave,
+          ...(orderNumber ? { orderNumber } : {}),
+        }
+        localStorage.setItem('customer', JSON.stringify(finalCustomer))
         return router.push(`/pf/available`)
-      } catch (error: any) {
-        console.log(error)
       }
+    } catch (error: unknown) {
+      console.error('Erro ao salvar etapa no servidor:', error)
     }
   }
 

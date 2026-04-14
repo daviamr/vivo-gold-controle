@@ -29,6 +29,7 @@ function Index() {
   const [checkedStates, setCheckedStates] = useState<boolean[]>([])
   const vivoFibraAPI = new VivoFibraAPI()
   const [currentPage, setCurrentPage] = useState(0)
+  const [checkoutPlanId, setCheckoutPlanId] = useState<number | null>(null)
 
   const form = useForm<PlanFormData>({
     mode: 'onSubmit',
@@ -39,11 +40,29 @@ function Index() {
   })
   const { handleSubmit, formState: { errors }, register, watch } = form
 
-  const handleCheckout = (plan: IPlan) => {
+  const handleCheckout = async (plan: IPlan) => {
     const customerData = localStorage.getItem('customer')
     const customer = customerData ? JSON.parse(customerData) : {}
     const dataToSave = { ...customer, plan }
-    localStorage.setItem('customer', JSON.stringify(dataToSave))
+    try {
+      setCheckoutPlanId(plan.id)
+      const res = await vivoFibraAPI.saveConsultOrder(
+        plan,
+        customer.firstStepData?.mobileLine || 'new_number',
+      )
+      console.log(res)
+      const orderId = VivoFibraAPI.extractOrderId(res)
+      console.log(orderId)
+      localStorage.setItem(
+        'customer',
+        JSON.stringify({ ...dataToSave, ...(orderId ? { orderId } : {}) }),
+      )
+    } catch (e) {
+      console.error('Erro ao registrar consulta do plano:', e)
+      localStorage.setItem('customer', JSON.stringify(dataToSave))
+    } finally {
+      setCheckoutPlanId(null)
+    }
     router.push('/pf/checkout?step=1')
   }
 
@@ -54,9 +73,18 @@ function Index() {
   // Inicializa os estados quando os plans carregam
   useEffect(() => {
     const fetchPlans = async () => {
-      const plans = await vivoControlePlans()
+      const raw = await vivoControlePlans()
+      if (!raw || !Array.isArray(raw)) {
+        setPlans([])
+        setCheckedStates([])
+        return
+      }
+      const plans = raw.map((plan: IPlan) => ({
+        ...plan,
+        extras: VivoFibraAPI.normalizePlanExtras(plan.extras),
+      }))
       setPlans(plans)
-      setCheckedStates(plans.map((plan: IPlan) => plan?.extras[0]?.default_checked ?? false))
+      setCheckedStates(plans.map((plan: IPlan) => plan.extras[0]?.default_checked ?? false))
     }
     fetchPlans()
   }, [])
@@ -168,8 +196,9 @@ function Index() {
                   <Button
                     variant={'vivoPlans'}
                     className="w-full rounded-sm p-6 text-white tracking-wider"
-                    onClick={() => handleCheckout(plan)}>
-                    Contratar Vivo Controle
+                    disabled={checkoutPlanId === plan.id}
+                    onClick={() => void handleCheckout(plan)}>
+                    {checkoutPlanId === plan.id ? 'Carregando…' : 'Contratar Vivo Controle'}
                   </Button>
 
                   <span
