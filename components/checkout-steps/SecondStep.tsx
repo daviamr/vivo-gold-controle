@@ -1,29 +1,99 @@
 'use client'
 
-import { Label } from "../ui/label";
-import { Controller, UseFormReturn } from "react-hook-form";
-import { Input } from "../ui/input";
-import { withMask } from "use-mask-input";
-import { RadioGroup, RadioGroupItem } from "../ui/radio-group";
-import { Checkbox } from "../ui/checkbox";
-import { useEffect } from "react";
-import { Customer } from "@/interface/Customer";
+import { Label } from "../ui/label"
+import { Controller, UseFormReturn } from "react-hook-form"
+import { Input } from "../ui/input"
+import { withMask } from "use-mask-input"
+import { RadioGroup, RadioGroupItem } from "../ui/radio-group"
+import { Checkbox } from "../ui/checkbox"
+import { useEffect, useRef, useState } from "react"
+import { Customer } from "@/interface/Customer"
+import { ViaCEP } from "@/lib/ViaCEP"
+import { cleanNumbers } from "@/lib/helpers/formatters"
+import { Loader2 } from "lucide-react"
+
+const viaCep = new ViaCEP()
+
+function formatCepDisplay(digits: string): string {
+  const d = cleanNumbers(digits)
+  if (d.length !== 8) return digits
+  return `${d.slice(0, 5)}-${d.slice(5)}`
+}
 
 function Index({ customerData, form, step }: SecondStepProps) {
-  const { formState: { errors }, setValue, control, register, watch } = form
+  const { formState: { errors }, setValue, setError, clearErrors, getValues, control, register, watch } = form
   const watchLiveIn = watch('liveIn')
   const watchHasBlockAndLot = watch('hasBlockAndLot')
+  const watchCep = watch('cep')
+  const [cepLoading, setCepLoading] = useState(false)
+  const lastFetchedCepRef = useRef<string | null>(null)
 
   useEffect(() => {
-    if (step === 2 && customerData?.address) {
-      setValue('cep', customerData.address.cep || '')
-      setValue('homeNumber', customerData.address.homeNumber || '')
-      setValue('street', customerData.address.logradouro || '')
-      setValue('district', customerData.address.bairro || '')
-      setValue('city', customerData.address.localidade || '')
-      setValue('uf', customerData.address.uf || '')
+    if (step !== 2 || !customerData?.address) return
+    const a = customerData.address
+    setValue('cep', a.cep || '')
+    setValue('homeNumber', a.homeNumber || '')
+    setValue('street', a.street || a.logradouro || '')
+    setValue('district', a.district || a.bairro || '')
+    setValue('city', a.city || a.localidade || '')
+    setValue('uf', a.uf || '')
+    setValue('liveIn', a.liveIn || '')
+    setValue('hasBlockAndLot', a.hasBlockAndLot ?? false)
+    setValue('block', a.block || '')
+    setValue('lot', a.lot || '')
+    setValue('complement', a.complement ?? '')
+    setValue('landmark', a.landmark ?? '')
+    setValue('floor', a.floor ?? '')
+  }, [step, customerData, setValue])
+
+  useEffect(() => {
+    const clean = cleanNumbers(watchCep || '')
+    if (clean.length !== 8) {
+      lastFetchedCepRef.current = null
+      return
     }
-  }, [])
+    if (lastFetchedCepRef.current === clean) return
+
+    let cancelled = false
+
+    const run = async () => {
+      setCepLoading(true)
+      try {
+        const response = await viaCep.searchCEP(clean)
+        if (cancelled) return
+
+        if (!response) {
+          setError('cep', { type: 'manual', message: 'Não foi possível buscar o CEP.' })
+          return
+        }
+        if (response.erro) {
+          setError('cep', { type: 'manual', message: 'CEP não encontrado.' })
+          return
+        }
+
+        clearErrors('cep')
+        lastFetchedCepRef.current = clean
+
+        setValue('cep', formatCepDisplay(response.cep || clean), { shouldValidate: true })
+        setValue('street', response.logradouro ?? '', { shouldValidate: true })
+        setValue('district', response.bairro ?? '', { shouldValidate: true })
+        setValue('city', response.localidade ?? '', { shouldValidate: true })
+        setValue('uf', (response.uf ?? '').toUpperCase(), { shouldValidate: true })
+
+        const comp = (response.complemento ?? '').trim()
+        if (comp && !getValues('complement')?.trim()) {
+          setValue('complement', comp, { shouldValidate: true })
+        }
+      } finally {
+        if (!cancelled) setCepLoading(false)
+      }
+    }
+
+    void run()
+    return () => {
+      cancelled = true
+    }
+  }, [watchCep, setValue, setError, clearErrors, getValues])
 
   return (
     <div className="mt-8">
@@ -31,23 +101,32 @@ function Index({ customerData, form, step }: SecondStepProps) {
 
         <div>
           <Label className="text-1xl font-normal mb-1">CEP</Label>
-          <Controller
-            name="cep"
-            control={control}
-            render={({ field }) => (
-              <Input
-                type="text"
-                placeholder="CEP"
-                value={field.value || ''}
-                onChange={field.onChange}
-                maxLength={9}
-                ref={withMask('99999-999', {
-                  placeholder: '_',
-                  showMaskOnHover: false,
-                  showMaskOnFocus: false
-                })} />
+          <div className="relative">
+            <Controller
+              name="cep"
+              control={control}
+              render={({ field }) => (
+                <Input
+                  type="text"
+                  placeholder="CEP"
+                  className={cepLoading ? 'pr-10' : undefined}
+                  value={field.value || ''}
+                  onChange={field.onChange}
+                  disabled={cepLoading}
+                  maxLength={9}
+                  ref={withMask('99999-999', {
+                    placeholder: '_',
+                    showMaskOnHover: false,
+                    showMaskOnFocus: false
+                  })} />
+              )}
+            />
+            {cepLoading && (
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground" aria-hidden>
+                <Loader2 className="h-4 w-4 animate-spin" />
+              </span>
             )}
-          />
+          </div>
           {errors.cep && (
             <p className="text-red-500 text-sm mt-1">{String(errors.cep.message)}</p>)}
         </div>

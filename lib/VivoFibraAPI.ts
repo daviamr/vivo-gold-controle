@@ -12,9 +12,20 @@ type PlanExtra = {
   checked?: boolean
 }
 
+type ConsultOrderFingerprintMeta = {
+  visitor_id: string
+  finger_print: {
+    os: { name: string; version: string }
+    device: string
+    browser: { name: string; version: string }
+    timezone: string
+    resolution: { dpr: number; width: number; height: number }
+    timezone_offset: number
+  }
+}
+
 export class VivoFibraAPI {
 
-  /** API às vezes envia `extras` como objeto único ou omite o campo. */
   static normalizePlanExtras(extras: unknown): PlanExtra[] {
     if (extras == null) return []
     if (Array.isArray(extras)) return extras as PlanExtra[]
@@ -22,17 +33,25 @@ export class VivoFibraAPI {
     return []
   }
 
-  /** Cria pedido parcial na consulta do plano (consulta: 1, pedido: 0, ABERTO). */
   async saveConsultOrder(plan: IPlan, mobileLine?: string): Promise<any> {
-    const payload = this.buildConsultOrderPayload(plan, mobileLine)
-    console.log('>>> payload', payload)
+    const [clientIp, fingerprint] = await Promise.all([
+      this.fetchClientIp(),
+      this.getFingerprintForPayload(),
+    ])
+    const payload = this.buildConsultOrderPayload(plan, mobileLine, {
+      clientIp,
+      fingerprint,
+    })
+    // console.log('>>> payload', payload)
+    // return
     const response = await api.post(TELEFONIA_ORDER_PATH,
       payload, { headers: { 'Content-Type': 'application/json' } })
     return response.data
   }
 
-  /** Atualiza o pedido em cada etapa do checkout (PATCH). */
   async updateOrderProgress(orderId: number, partial: Record<string, unknown>): Promise<any> {
+    // console.log('>>> partial', partial)
+    // return
     const response = await api.put(
       `${TELEFONIA_ORDER_PATH}/${orderId}`,
       partial,
@@ -59,7 +78,11 @@ export class VivoFibraAPI {
     return typeof num === "string" ? num : undefined
   }
 
-  buildConsultOrderPayload(plan: IPlan, mobileLine?: string) {
+  buildConsultOrderPayload(
+    plan: IPlan,
+    mobileLine?: string,
+    meta?: { clientIp?: string; fingerprint?: ConsultOrderFingerprintMeta | null },
+  ) {
     const now = this.brDateTime()
     const baseMonthly = plan.pricing.base_monthly
     const installationFee = plan.pricing.installation ?? 0
@@ -71,8 +94,15 @@ export class VivoFibraAPI {
         status: "ABERTO",
         client_type: "PF",
         landing_page: "vivo_controle",
-        client_ip: "",
-        fingerprint: "",
+        client_ip: meta?.clientIp ?? "",
+        finger_print: meta?.fingerprint?.finger_print ?? {
+          os: { name: "Unknown", version: "0.0.0" },
+          device: "desktop",
+          browser: { name: "Unknown", version: "0.0.0" },
+          timezone: "GMT+0",
+          resolution: { dpr: 1, width: 0, height: 0 },
+          timezone_offset: 0,
+        },
         consulta: 1,
         pedido: 0,
         url: typeof window !== "undefined" ? window.location.href : "",
@@ -111,15 +141,16 @@ export class VivoFibraAPI {
   }) {
     return {
       pedido: {
-        full_name: args.fullName,
+        fullname: this.formatFullName(args.fullName),
         phone: this.buildPhoneWithCountry(args.ddi, args.tel),
-        email: args.email,
+        email: args.email.toLowerCase(),
         pedido: 1,
         line_action: args.mobileLine ?? "",
         ...(args.mobileLineNumber
           ? { line_number_informed: this.onlyNumber(args.mobileLineNumber) }
           : {}),
         wants_esim: args.eSim ? 1 : 0,
+        typeclient: 'PF'
       }
     }
   }
@@ -233,10 +264,63 @@ export class VivoFibraAPI {
   async getPlans() {
     try {
       const response = await api.get('/planos/telefonia-movel?landing_page=vivo_controle')
-      console.log('>>> response', response.data)
-      return response.data
+      const availablePlans = response.data.filter((plan: IPlan) => plan.online)
+      return availablePlans
     } catch (error) {
       console.log(error)
+    }
+  }
+
+  private static isLoopbackOrLocalIp(ip: string): boolean {
+    const t = ip.trim().toLowerCase()
+    if (!t) return true
+    if (t === "::1" || t === "127.0.0.1") return true
+    if (t === "::ffff:127.0.0.1" || t === "0:0:0:0:0:0:0:1") return true
+    return false
+  }
+
+  private async fetchPublicIpFromClient(): Promise<string> {
+    try {
+      const res = await fetch("https://api.ipify.org?format=json", { cache: "no-store" })
+      if (!res.ok) return ""
+      const data = (await res.json()) as { ip?: string }
+      return typeof data.ip === "string" ? data.ip.trim() : ""
+    } catch {
+      return ""
+    }
+  }
+
+  private async fetchClientIp(): Promise<string> {
+    if (typeof window === "undefined") return ""
+    try {
+      const res = await fetch("/api/client-ip", { cache: "no-store" })
+      if (res.ok) {
+        const data = (await res.json()) as { ip?: string }
+        const fromHeaders = typeof data.ip === "string" ? data.ip.trim() : ""
+        if (fromHeaders && !VivoFibraAPI.isLoopbackOrLocalIp(fromHeaders)) {
+          return fromHeaders
+        }
+      }
+    } catch {
+    }
+    return this.fetchPublicIpFromClient()
+  }
+
+  private async getFingerprintForPayload(): Promise<ConsultOrderFingerprintMeta | null> {
+    if (typeof window === "undefined") return null
+    try {
+      const FP = (await import("@fingerprintjs/fingerprintjs")).default
+      const fp = await FP.load()
+      const { visitorId } = await fp.get()
+      const { finger_print } = this.getFingerprint()
+      return { visitor_id: visitorId, finger_print }
+    } catch {
+      try {
+        const { finger_print } = this.getFingerprint()
+        return { visitor_id: "", finger_print }
+      } catch {
+        return null
+      }
     }
   }
 
@@ -246,12 +330,12 @@ export class VivoFibraAPI {
     // OS
     const getOS = () => {
       if (/android/i.test(ua)) {
-        const version = ua.match(/Android\s([0-9.]+)/)?.[1] + '.0';
-        return { name: 'Android', version };
+        const m = ua.match(/Android\s([0-9.]+)/)?.[1]
+        return { name: "Android", version: m ? `${m}.0` : "0.0.0" }
       }
       if (/iphone|ipad/i.test(ua)) {
-        const version = ua.match(/OS\s([0-9_]+)/)?.[1].replace(/_/g, '.');
-        return { name: 'iOS', version };
+        const m = ua.match(/OS\s([0-9_]+)/)?.[1]
+        return { name: "iOS", version: m ? m.replace(/_/g, ".") : "0.0.0" }
       }
       if (/windows/i.test(ua)) return { name: 'Windows', version: '10.0.0' };
       if (/mac/i.test(ua)) return { name: 'MacOS', version: '10.0.0' };
@@ -285,8 +369,6 @@ export class VivoFibraAPI {
         : { name: 'Unknown', version: '0.0.0' };
     };
 
-    // Timezone
-    const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
     const timezoneOffset = new Date().getTimezoneOffset(); // ex: 180 para GMT-3
 
     // Resolution
@@ -306,6 +388,16 @@ export class VivoFibraAPI {
         timezone_offset: timezoneOffset,
       }
     };
+  }
+
+  formatFullName(value: string): string {
+    const s = value.trim().toLowerCase()
+    if (!s) return ""
+    return s
+      .split(/\s+/)
+      .map((w) => (w ? w.charAt(0).toUpperCase() + w.slice(1) : ""))
+      .filter(Boolean)
+      .join(" ")
   }
 
   onlyNumber(value: string): string {
