@@ -166,6 +166,28 @@ export const validateStep4 = (
     hasError = true
   } else { clearErrors('primaryTel') }
 
+  const st = data.secondaryTel?.trim()
+  if (st) {
+    const ddiAdd = data.ddiAdditional ?? '+55'
+    const br = /^\(\d{2}\) \d \d{4}-\d{4}$/
+    const us = /^\(\d{3}\) \d{3}-\d{4}$/
+    const uk = /^\d{2} \d{4} \d{4}$/
+    const pt = /^\d{3} \d{3} \d{3}$/
+    const ok =
+      (ddiAdd === '+55' && br.test(st)) ||
+      (ddiAdd === '+1' && us.test(st)) ||
+      (ddiAdd === '+44' && uk.test(st)) ||
+      (ddiAdd === '+351' && pt.test(st))
+    if (!ok) {
+      setError('secondaryTel', { message: 'Número de telefone adicional inválido para o DDI selecionado.' })
+      hasError = true
+    } else {
+      clearErrors('secondaryTel')
+    }
+  } else {
+    clearErrors('secondaryTel')
+  }
+
   if (!data.termsOfUse) {
     setError('termsOfUse', { message: 'Você precisa aceitar os termos para continuar.' })
     hasError = true
@@ -205,5 +227,6 @@ export type CheckoutFormData = {
   bornDate?: string,
   primaryTel?: string,
   secondaryTel?: string,
+  ddiAdditional?: string,
   termsOfUse?: boolean
 }

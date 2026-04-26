@@ -43,7 +43,6 @@ export class VivoFibraAPI {
       fingerprint,
     })
     // console.log('>>> payload', payload)
-    // return
     const response = await api.post(TELEFONIA_ORDER_PATH,
       payload, { headers: { 'Content-Type': 'application/json' } })
     return response.data
@@ -51,7 +50,6 @@ export class VivoFibraAPI {
 
   async updateOrderProgress(orderId: number, partial: Record<string, unknown>): Promise<any> {
     // console.log('>>> partial', partial)
-    // return
     const response = await api.put(
       `${TELEFONIA_ORDER_PATH}/${orderId}`,
       partial,
@@ -72,10 +70,32 @@ export class VivoFibraAPI {
     if (!data || typeof data !== "object") return undefined
     const o = data as Record<string, unknown>
     const nested = o.order && typeof o.order === "object"
-      ? (o.order as Record<string, unknown>).order_number
+      ? (o.order as Record<string, unknown>).ordernumber
       : undefined
-    const num = nested ?? o.order_number ?? o.numero_pedido
+    const num = nested ?? o.ordernumber ?? o.numero_pedido
     return typeof num === "string" ? num : undefined
+  }
+
+  /** YYYYMMDD em America/Sao_Paulo (UTC-3) + hífen + 5 dígitos aleatórios (10000–99999). */
+  static generateClientOrderNumber(): string {
+    const d = new Date()
+    const parts = new Intl.DateTimeFormat("en-CA", {
+      timeZone: "America/Sao_Paulo",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    })
+      .formatToParts(d)
+      .reduce<Record<string, string>>((acc, p) => {
+        if (p.type !== "literal") acc[p.type] = p.value
+        return acc
+      }, {})
+    const y = parts.year ?? ""
+    const m = parts.month ?? ""
+    const day = parts.day ?? ""
+    const ymd = `${y}${m}${day}`
+    const n = Math.floor(Math.random() * 90000) + 10000
+    return `${ymd}-${n}`
   }
 
   buildConsultOrderPayload(
@@ -91,7 +111,7 @@ export class VivoFibraAPI {
     const lineAction = mobileLine ?? ""
     return {
       pedido: {
-        status: "ABERTO",
+        status: "aberto",
         client_type: "PF",
         landing_page: "vivo_controle",
         client_ip: meta?.clientIp ?? "",
@@ -189,6 +209,7 @@ export class VivoFibraAPI {
     primaryTel: string
     secondaryTel?: string
     ddi?: string
+    ddiAdditional?: string
     termsOfUse?: boolean
     acceptOffers?: boolean
     orderNumber?: string
@@ -200,14 +221,17 @@ export class VivoFibraAPI {
         phone: this.buildPhoneWithCountry(args.ddi, args.primaryTel),
         terms_accepted: args.termsOfUse ? 1 : 0,
         accept_offers: args.acceptOffers ? 1 : 0,
-        status: "FECHADO",
+        status: "fechado",
       }
     }
-    if (args.secondaryTel) {
-      body.pedido.phoneAdditional = this.onlyNumber(args.secondaryTel)
+    if (args.secondaryTel?.trim()) {
+      body.pedido.phoneAdditional = this.buildPhoneWithCountry(
+        args.ddiAdditional,
+        args.secondaryTel,
+      )
     }
     if (args.orderNumber) {
-      body.pedido.order_number = args.orderNumber
+      body.pedido.ordernumber = args.orderNumber
     }
     return body
   }

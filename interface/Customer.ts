@@ -56,6 +56,7 @@ type FourthStepData = {
   motherName: string,
   primaryTel?: string,
   secondaryTel?: string,
+  ddiAdditional?: string,
   termsOfUse?: boolean,
   acceptOffers?: boolean,
   url?: string,

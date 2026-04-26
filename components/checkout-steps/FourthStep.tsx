@@ -122,20 +122,52 @@ function Index({ form, ddiOptions }: SecondStepProps) {
         <div className="lg:col-span-2">
           <Label className="text-1xl font-normal mb-1" htmlFor="secondaryTel">Segundo número de contato (opcional)</Label>
           <Controller
-            name="secondaryTel"
+            name="ddiAdditional"
             control={control}
-            render={({ field }) => (
-              <Input
-                id="secondaryTel"
-                type="text"
-                value={field.value || ''}
-                onChange={field.onChange}
-                ref={withMask('(99) 9 9999-9999', {
-                  placeholder: '',
-                  showMaskOnHover: false,
-                  showMaskOnFocus: false
-                })} />
-            )} />
+            render={({ field }) => {
+              const currentMask = ddiOptions?.find((d) => d.value === field.value)?.mask ?? '(99) 9 9999-9999'
+              return (
+                <div className="flex items-center gap-2">
+                  <Select
+                    key={field.value}
+                    value={field.value}
+                    onValueChange={(val) => {
+                      field.onChange(val)
+                      setValue('secondaryTel', '')
+                    }}>
+                    <SelectTrigger className="w-[110px]">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {ddiOptions?.map((opt) => (
+                        <SelectItem key={opt.value} value={opt.value}>
+                          {opt.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Controller
+                    name="secondaryTel"
+                    control={control}
+                    render={({ field: telField }) => (
+                      <Input
+                        id="secondaryTel"
+                        type="text"
+                        value={telField.value ?? ''}
+                        onChange={(e) => telField.onChange(e.target.value)}
+                        onBlur={telField.onBlur}
+                        ref={withMask(currentMask, {
+                          placeholder: '',
+                          showMaskOnHover: false,
+                          showMaskOnFocus: false,
+                        })}
+                      />
+                    )}
+                  />
+                </div>
+              )
+            }}
+          />
           {errors.secondaryTel && (
             <p className="text-red-500 text-sm mt-1">{String(errors.secondaryTel.message)}</p>)}
         </div>

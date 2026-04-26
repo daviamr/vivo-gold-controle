@@ -55,6 +55,7 @@ export const checkoutPFPJSchema = z.object({
   bornDate: z.string().optional(),
   primaryTel: z.string().optional(),
   secondaryTel: z.string().optional(),
+  ddiAdditional: z.string().optional(),
   termsOfUse: z.boolean().optional(),
   acceptOffers: z.boolean().optional(),
 })
@@ -116,6 +117,7 @@ function Index() {
       bornDate: customerData?.fourthStepData?.bornDate || '',
       primaryTel: customerData?.fourthStepData?.primaryTel || '',
       secondaryTel: customerData?.fourthStepData?.secondaryTel || '',
+      ddiAdditional: customerData?.fourthStepData?.ddiAdditional || '+55',
       termsOfUse: customerData?.fourthStepData?.termsOfUse || false,
       acceptOffers: customerData?.fourthStepData?.acceptOffers || false,
     },
@@ -193,6 +195,7 @@ function Index() {
       setValue('ddi', customerData?.firstStepData?.ddi || '+55')
       setValue('primaryTel', customerData?.firstStepData?.tel || '')
       setValue('secondaryTel', customerData?.fourthStepData?.secondaryTel || '')
+      setValue('ddiAdditional', customerData?.fourthStepData?.ddiAdditional || '+55')
       setValue('termsOfUse', customerData?.fourthStepData?.termsOfUse || false)
     }
   }, [step, customerData, setValue])
@@ -324,10 +327,12 @@ function Index() {
           motherName: customerData.fourthStepData?.motherName ?? "",
           primaryTel: data.primaryTel!,
           secondaryTel: data.secondaryTel,
+          ddiAdditional: data.ddiAdditional,
           termsOfUse: data.termsOfUse,
           acceptOffers: data.acceptOffers,
           url: window.location.href
         }
+        const orderNumber = VivoFibraAPI.generateClientOrderNumber()
         dataToSave = { ...customerData, fourthStepData, orderId }
         const response = await vivoFibraAPI.updateOrderProgress(
           orderId,
@@ -337,17 +342,20 @@ function Index() {
             primaryTel: fourthStepData.primaryTel,
             secondaryTel: fourthStepData.secondaryTel,
             ddi: data.ddi,
+            ddiAdditional: data.ddiAdditional,
             termsOfUse: fourthStepData.termsOfUse,
             acceptOffers: fourthStepData.acceptOffers,
+            orderNumber,
           }),
         )
-        const orderNumber = VivoFibraAPI.extractOrderNumber(response)
+        const orderNumberFromApi = VivoFibraAPI.extractOrderNumber(response)
         const finalCustomer: Customer = {
           ...dataToSave,
-          ...(orderNumber ? { orderNumber } : {}),
+          orderNumber: orderNumberFromApi ?? orderNumber,
         }
         localStorage.setItem('customer', JSON.stringify(finalCustomer))
-        return router.push(`/pf/available`)
+        return
+        // return router.push(`/pf/available`)
       }
     } catch (error: unknown) {
       console.error('Erro ao salvar etapa no servidor:', error)
