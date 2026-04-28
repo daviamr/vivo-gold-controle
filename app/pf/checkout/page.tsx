@@ -354,8 +354,7 @@ function Index() {
           orderNumber: orderNumberFromApi ?? orderNumber,
         }
         localStorage.setItem('customer', JSON.stringify(finalCustomer))
-        return
-        // return router.push(`/pf/available`)
+        return router.push(`/pf/available`)
       }
     } catch (error: unknown) {
       console.error('Erro ao salvar etapa no servidor:', error)

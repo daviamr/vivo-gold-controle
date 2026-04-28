@@ -112,7 +112,7 @@ export class VivoFibraAPI {
     return {
       pedido: {
         status: "aberto",
-        client_type: "PF",
+        typeclient: "PF",
         landing_page: "vivo_controle",
         client_ip: meta?.clientIp ?? "",
         finger_print: meta?.fingerprint?.finger_print ?? {
