@@ -95,7 +95,7 @@ export class VivoFibraAPI {
     const day = parts.day ?? ""
     const ymd = `${y}${m}${day}`
     const n = Math.floor(Math.random() * 90000) + 10000
-    return `${ymd}-${n}`
+    return `${ymd}${n}`
   }
 
   buildConsultOrderPayload(
