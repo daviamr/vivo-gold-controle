@@ -3,6 +3,7 @@ import { Menu } from "lucide-react"
 import { useState } from "react"
 import Image from "next/image"
 import Link from "next/link"
+import { withBasePath } from "@/lib/basePath"
 import MenuMobile from '../menu-mobile/MenuMobile'
 
 function Index() {
@@ -14,7 +15,7 @@ function Index() {
 
         <div className="flex items-center justify-between">
           <div className="flex gap-2 items-center">
-            <Image src={'/logo-vivo.webp'} alt='Logo VivoFibra' width={128} height={48} />
+            <Image src={withBasePath('/logo-vivo.webp')} alt='Logo VivoFibra' width={128} height={48} />
 
             <div className="hidden ml-6 items-center gap-6 lg:flex">
               <Link href={'/pf'}
@@ -31,7 +32,7 @@ function Index() {
           </button>
 
           <div className="hidden lg:flex flex-col items-center">
-            <Image src={'/logo-gold.webp'} alt="Logo Gold" width={112} height={60}/>
+            <Image src={withBasePath('/logo-gold.webp')} alt="Logo Gold" width={112} height={60}/>
             <p className="border border-[#6c4598] px-[5px] rounded-sm text-[#6c4598] font-semibold text-sm">Parceiro autorizado</p>
           </div>
         </div>

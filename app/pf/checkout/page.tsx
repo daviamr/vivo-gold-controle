@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { withMask } from "use-mask-input"
 import { Button } from "@/components/ui/button"
-import { Loader, Smartphone } from "lucide-react"
+import { CalendarDays, Check, Loader, MapPin, Smartphone } from "lucide-react"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Customer } from "@/interface/Customer"
 import z from "zod"
@@ -61,6 +61,22 @@ export const checkoutPFPJSchema = z.object({
 })
 
 export type CheckoutFormData = z.infer<typeof checkoutPFPJSchema>
+
+const MOBILE_LINE_LABELS: Record<string, string> = {
+  new_number: 'Adquirir um novo número Vivo',
+  port_in_to_vivo: 'Transferir meu número pra Vivo',
+  keep_vivo_number: 'Manter meu número Vivo',
+}
+
+const LIVE_IN_LABELS: Record<string, string> = {
+  building: 'Edifício',
+  house: 'Casa',
+}
+
+function formatBrlMonthly(value: number | undefined | null): string {
+  if (value == null || Number.isNaN(value)) return '—'
+  return `${value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}/mês`
+}
 
 function Index() {
   const vivoFibraAPI = new VivoFibraAPI()
@@ -132,6 +148,55 @@ function Index() {
 
   const eSim = watch('eSim')
   const watchMobileLine = watch('mobileLine')
+  const watchMobileLineNumber = watch('mobileLineNumber')
+  const watchDueDay = watch('dueDay')
+  const watchCep = watch('cep')
+  const watchStreet = watch('street')
+  const watchHomeNumber = watch('homeNumber')
+  const watchDistrict = watch('district')
+  const watchCity = watch('city')
+  const watchUf = watch('uf')
+  const watchLiveIn = watch('liveIn')
+  const watchComplement = watch('complement')
+  const watchFloor = watch('floor')
+  const watchLandmark = watch('landmark')
+  const watchHasBlockLot = watch('hasBlockAndLot')
+  const watchBlock = watch('block')
+  const watchLot = watch('lot')
+
+  const mobileLineValue = watchMobileLine ?? customerData?.firstStepData?.mobileLine ?? ''
+  const mobileLineNumberDisplay =
+    watchMobileLineNumber ?? customerData?.firstStepData?.mobileLineNumber ?? ''
+  const dueDayDisplay = watchDueDay || customerData?.thirdStepData?.dueDay || ''
+  const savedAddr = customerData?.address
+
+  const addressLine1 = [watchStreet || savedAddr?.street || savedAddr?.logradouro, watchHomeNumber || savedAddr?.homeNumber]
+    .filter(Boolean)
+    .join(', ')
+  const neighborhood = watchDistrict || savedAddr?.district || savedAddr?.bairro
+  const city = watchCity || savedAddr?.city || savedAddr?.localidade
+  const ufDisplay = watchUf || savedAddr?.uf || ''
+  const addressLineParts: string[] = []
+  if (neighborhood) addressLineParts.push(neighborhood)
+  const cityUf = [city, ufDisplay].filter(Boolean).join('/')
+  if (cityUf) addressLineParts.push(cityUf)
+  const addressLine2 = addressLineParts.filter(Boolean).join(' — ')
+  const cepDisplay = watchCep || savedAddr?.cep || ''
+
+  const complementDisplay = (watchComplement || savedAddr?.complement || '').trim()
+  const liveInDisplay = (watchLiveIn || savedAddr?.liveIn || '').trim()
+  const floorDisplay = (watchFloor || savedAddr?.floor || '').trim()
+  const landmarkDisplay = (watchLandmark || savedAddr?.landmark || '').trim()
+  const hasBlockLot = Boolean(watchHasBlockLot ?? savedAddr?.hasBlockAndLot)
+  const blockDisplay = (watchBlock || savedAddr?.block || '').trim()
+  const lotDisplay = (watchLot || savedAddr?.lot || '').trim()
+
+  const cepTrimmed = String(cepDisplay || '').trim()
+
+  const showAddressBlock =
+    step >= 2 &&
+    Boolean(cepTrimmed || addressLine1 || addressLine2 || complementDisplay || liveInDisplay)
+  const showDueBlock = step >= 3 && Boolean(dueDayDisplay)
 
   useEffect(() => {
     const customer = localStorage.getItem('customer')
@@ -600,29 +665,117 @@ function Index() {
         </form>
 
         <div className="bg-white p-4 rounded-sm py-8 h-max shadow-xs">
-          <p className="text-2xl font-semibold text-gray-800 mb-4">Meu plano</p>
+          <p className="text-2xl font-semibold text-gray-800 mb-4">Resumo do pedido</p>
 
-          <div className="flex items-center justify-between border-b pb-4">
-            <p className="flex items-center gap-2 font-light"> <Smartphone size={18} /> {customerData?.plan?.name}</p>
-
-            <p className="font-light">
-              {customerData?.plan?.pricing?.base_monthly?.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}/mês</p>
+          <div className="space-y-3 border-b pb-4">
+            <div className="flex items-start justify-between gap-2">
+              <p className="flex items-center gap-2 font-light shrink min-w-0">
+                <Smartphone size={18} className="shrink-0" />
+                <span className="leading-snug">{customerData?.plan?.name}</span>
+              </p>
+              <p className="font-light text-right whitespace-nowrap">
+                {formatBrlMonthly(customerData?.plan?.pricing?.base_monthly)}
+              </p>
+            </div>
+            {customerData?.plan?.offer_title && (
+              <p className="text-sm font-medium text-gray-700 pl-7">{customerData.plan.offer_title}</p>
+            )}
+            {customerData?.plan?.offer_subtitle && (
+              <p className="text-xs text-gray-500 pl-7 leading-snug">{customerData.plan.offer_subtitle}</p>
+            )}
+            {customerData?.plan?.details?.[0]?.title && (
+              <p className="flex items-center gap-2 text-sm text-gray-600 pl-7">
+                <Check size={16} className="text-default-purple shrink-0" />
+                {customerData.plan.details[0].title}
+              </p>
+            )}
+            {customerData?.plan?.extras?.some((ex) => ex.default_checked === true || ex.checked === true) && (
+              <ul className="pl-7 space-y-1">
+                {customerData.plan.extras
+                  .filter((ex) => ex.default_checked === true || ex.checked === true)
+                  .map((ex) => (
+                    <li key={ex.id} className="flex items-center gap-2 text-sm text-gray-600">
+                      <Check size={16} className="text-default-purple shrink-0" />
+                      {ex.title}
+                    </li>
+                  ))}
+              </ul>
+            )}
           </div>
 
-          {eSim && (
-            <div className="flex items-center justify-between border-b py-4">
-              <p className="flex items-center gap-2 font-bold">Chip 4.5G</p>
+          <div className="border-b py-4 space-y-3">
+            <p className="text-sm font-semibold text-gray-800">Contratação</p>
+            {mobileLineValue && (
+              <div className="flex items-start justify-between gap-2 text-sm">
+                <span className="text-gray-500 shrink-0">Linha</span>
+                <span className="text-right text-gray-800">{MOBILE_LINE_LABELS[mobileLineValue] ?? mobileLineValue}</span>
+              </div>
+            )}
+            {(mobileLineValue === 'port_in_to_vivo' || mobileLineValue === 'keep_vivo_number') &&
+              Boolean(mobileLineNumberDisplay?.trim()) && (
+                <div className="flex items-start justify-between gap-2 text-sm">
+                  <span className="text-gray-500 shrink-0">Número</span>
+                  <span className="text-right text-gray-800 tabular-nums">{mobileLineNumberDisplay}</span>
+                </div>
+              )}
+            <div className="flex items-center justify-between gap-2 text-sm">
+              <span className="text-gray-500">Chip</span>
+              <span className="text-right font-medium text-gray-800">
+                {eSim ? 'eSIM (virtual)' : 'Chip físico (entrega)'}
+              </span>
+            </div>
+            <div className="flex items-center justify-between gap-2 text-sm pt-1">
+              <span className="text-gray-500">{eSim ? 'Ativação eSIM' : 'Chip 4.5G'}</span>
+              <span className="font-semibold uppercase text-green-700">Grátis</span>
+            </div>
+          </div>
 
-              <p className="font-bold uppercase">
-                Grátis</p>
+          {showAddressBlock && (
+            <div className="border-b py-4 space-y-2">
+              <p className="text-sm font-semibold text-gray-800 flex items-center gap-2">
+                <MapPin size={16} aria-hidden /> Endereço de entrega do chip
+              </p>
+              {addressLine1 && <p className="text-sm text-gray-800 pl-6">{addressLine1}</p>}
+              {addressLine2 && <p className="text-sm text-gray-600 pl-6">{addressLine2}</p>}
+              {cepDisplay && (
+                <p className="text-sm text-gray-600 pl-6">
+                  CEP {cepDisplay}
+                </p>
+              )}
+              {complementDisplay && (
+                <p className="text-sm text-gray-600 pl-6">Complemento: {complementDisplay}</p>
+              )}
+              {liveInDisplay && (
+                <p className="text-sm text-gray-600 pl-6">Tipo: {LIVE_IN_LABELS[liveInDisplay] ?? liveInDisplay}</p>
+              )}
+              {liveInDisplay === 'building' && floorDisplay && (
+                <p className="text-sm text-gray-600 pl-6">Andar: {floorDisplay}</p>
+              )}
+              {liveInDisplay === 'house' && landmarkDisplay && (
+                <p className="text-sm text-gray-600 pl-6">Referência: {landmarkDisplay}</p>
+              )}
+              {hasBlockLot && (blockDisplay || lotDisplay) && (
+                <p className="text-sm text-gray-600 pl-6">
+                  Quadra/lote: {[blockDisplay, lotDisplay].filter(Boolean).join(' — ')}
+                </p>
+              )}
             </div>
           )}
 
-          <div className="flex items-center justify-between mt-4">
-            <p className="flex items-center gap-2 font-light">Total</p>
+          {showDueBlock && (
+            <div className="border-b py-4 flex items-start justify-between gap-2">
+              <p className="text-sm font-semibold text-gray-800 flex items-center gap-2">
+                <CalendarDays size={16} aria-hidden /> Fatura digital
+              </p>
+              <p className="text-sm text-gray-800 font-medium whitespace-nowrap">Vencimento dia {dueDayDisplay}</p>
+            </div>
+          )}
 
-            <p className="font-light">
-              {customerData?.plan?.pricing.base_monthly.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}/mês</p>
+          <div className="flex items-center justify-between mt-4 pt-1">
+            <p className="flex items-center gap-2 font-light">Total</p>
+            <p className="font-semibold">
+              {formatBrlMonthly(customerData?.plan?.pricing?.base_monthly)}
+            </p>
           </div>
         </div>
 

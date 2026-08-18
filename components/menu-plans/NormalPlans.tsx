@@ -8,6 +8,7 @@ import { useRouter } from "next/navigation"
 import { Checkbox } from "../ui/checkbox"
 import { Label } from "../ui/label"
 import { VivoFibraAPI } from "@/lib/VivoFibraAPI"
+import { withBasePath } from "@/lib/basePath"
 import { IPlan } from "@/interface/Plan"
 import z from "zod"
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -21,7 +22,7 @@ export type PlanFormData = z.infer<typeof planSchema>
 
 function Index() {
   const ICONS = {
-    APPS: ['/icon-netflix.png', '/icon-netflix.png', '/icon-netflix.png', '/icon-netflix.png', '/icon-netflix.png', '/icon-netflix.png']
+    APPS: Array.from({ length: 6 }, () => withBasePath('/icon-netflix.png')),
   }
   const [plans, setPlans] = useState<any>(null)
   const router = useRouter()
@@ -39,6 +40,8 @@ function Index() {
     },
   })
   const { handleSubmit, formState: { errors }, register, watch } = form
+
+  console.log(plans)
 
   const handleCheckout = async (plan: IPlan) => {
     const customerData = localStorage.getItem('customer')
@@ -79,10 +82,12 @@ function Index() {
         setCheckedStates([])
         return
       }
-      const plans = raw.map((plan: IPlan) => ({
-        ...plan,
-        extras: VivoFibraAPI.normalizePlanExtras(plan.extras),
-      }))
+      const plans = raw
+        .map((plan: IPlan) => ({
+          ...plan,
+          extras: VivoFibraAPI.normalizePlanExtras(plan.extras),
+        }))
+        .sort((a, b) => a.pricing.base_monthly - b.pricing.base_monthly)
       setPlans(plans)
       setCheckedStates(plans.map((plan: IPlan) => plan.extras[0]?.default_checked ?? false))
     }
@@ -150,11 +155,23 @@ function Index() {
                     </div>
                   </div>
                   <div className="flex flex-col gap-4 my-2">
-                    {plan.details[0]?.title && (
-                      <p className="flex items-center gap-2">
-                        <Check size={18} /> {plan?.details[0]?.title} GB de franquia
-                      </p>
-                    )}
+                    {plan.details
+                      .filter((detail) => detail.highlight_top)
+                      .map((detail, detailIndex) => (
+                        <p key={detailIndex} className="flex items-center gap-2">
+                          {detail.images[0] ? (
+                            <Image
+                              src={detail.images[0]}
+                              alt="app"
+                              width={18}
+                              height={18}
+                              className="rounded-sm" />
+                          ) : (
+                            <Check size={18} />
+                          )}
+                          {detail.title}
+                        </p>
+                      ))}
                     {(plan?.extras[0]?.default_checked === true ||
                       plan?.extras[0]?.checked === true) && (
                         <p className="flex items-center gap-2">
@@ -188,6 +205,23 @@ function Index() {
                     </>
                   )}
                 </div>
+
+                {plan.details
+                  .filter((detail) => detail.highlight_bottom)
+                  .map((detail, detailIndex) => (
+                    <div
+                      key={detailIndex}
+                      className="flex items-center justify-between mx-4 rounded-sm bg-[#f0f0f0] p-4">
+                      <p className="text-sm">{detail.title}</p>
+                      <Image
+                        src={detail.images[0] || withBasePath('/icon-netflix.png')}
+                        alt="app"
+                        width={32}
+                        height={32}
+                        className="rounded-sm" />
+                    </div>
+                  ))}
+
                 <div className="mt-auto px-4 py-8">
                   <p className="text-2xl pb-8">
                     R$ {plan.pricing.base_monthly} /mês
@@ -214,7 +248,7 @@ function Index() {
 
                       <p className="text-sm pb-1 font-semibold">6 meses de Amazon Prime de cortesia</p>
                       <Image
-                        src={'/icon-netflix.png'}
+                        src={withBasePath('/icon-netflix.png')}
                         alt={`app`}
                         width={32}
                         height={32}
@@ -224,7 +258,7 @@ function Index() {
                     <div className="pb-4">
                       <p className="text-sm pb-1 font-semibold">1 ano grátis de IA com Perplexity Pro</p>
                       <Image
-                        src={'/icon-netflix.png'}
+                        src={withBasePath('/icon-netflix.png')}
                         alt={`app`}
                         width={32}
                         height={32}
@@ -235,7 +269,7 @@ function Index() {
                       <p className="text-sm font-semibold">Apps Inclusos</p>
                       <p className="text-sm pb-1 opacity-75">Newco Play</p>
                       <Image
-                        src={'/icon-netflix.png'}
+                        src={withBasePath('/icon-netflix.png')}
                         alt={`app`}
                         width={32}
                         height={32}
@@ -276,8 +310,8 @@ function Index() {
                   type="button"
                   onClick={() => setCurrentPage(index)}
                   className={`w-2.5 h-2.5 rounded-full transition-all duration-200 cursor-pointer ${currentPage === index
-                      ? "bg-purple-600 scale-125"
-                      : "bg-gray-300 hover:bg-purple-300"
+                    ? "bg-purple-600 scale-125"
+                    : "bg-gray-300 hover:bg-purple-300"
                     }`}
                 />
               ))}

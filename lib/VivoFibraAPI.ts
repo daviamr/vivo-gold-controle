@@ -303,31 +303,18 @@ export class VivoFibraAPI {
     return false
   }
 
-  private async fetchPublicIpFromClient(): Promise<string> {
+  /** IP público visto ao sair para a internet (compatível com SPA/host estático, ex.: S3). */
+  private async fetchClientIp(): Promise<string> {
+    if (typeof window === "undefined") return ""
     try {
       const res = await fetch("https://api.ipify.org?format=json", { cache: "no-store" })
       if (!res.ok) return ""
       const data = (await res.json()) as { ip?: string }
-      return typeof data.ip === "string" ? data.ip.trim() : ""
-    } catch {
-      return ""
-    }
-  }
-
-  private async fetchClientIp(): Promise<string> {
-    if (typeof window === "undefined") return ""
-    try {
-      const res = await fetch("/api/client-ip", { cache: "no-store" })
-      if (res.ok) {
-        const data = (await res.json()) as { ip?: string }
-        const fromHeaders = typeof data.ip === "string" ? data.ip.trim() : ""
-        if (fromHeaders && !VivoFibraAPI.isLoopbackOrLocalIp(fromHeaders)) {
-          return fromHeaders
-        }
-      }
+      const ip = typeof data.ip === "string" ? data.ip.trim() : ""
+      if (ip && !VivoFibraAPI.isLoopbackOrLocalIp(ip)) return ip
     } catch {
     }
-    return this.fetchPublicIpFromClient()
+    return ""
   }
 
   private async getFingerprintForPayload(): Promise<ConsultOrderFingerprintMeta | null> {
