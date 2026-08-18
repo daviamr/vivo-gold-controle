@@ -560,7 +560,7 @@ function Index() {
                     <Input type="email" {...register('email')} />
                     <span className="opacity-75 text-sm font-light">E-mail para envio da fatura digital.</span>
                     {errors.email && (
-                      <p className="text-red-500 text-sm mt-1">{errors.email.message}</p>)}
+                      <p className={`text-sm mt-1 ${errors.email.type === 'warning' ? 'text-amber-600' : 'text-red-500'}`}>{errors.email.message}</p>)}
                   </div>
 
                   <div className="lg:col-span-2">

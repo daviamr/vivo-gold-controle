@@ -4,6 +4,10 @@ import { VivoFibraAPI } from "../VivoFibraAPI"
 
 const vivoControleAPI = new VivoFibraAPI()
 
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+let lastAcknowledgedEmailWarning = ''
+let lastAcknowledgedCpfWarning = ''
+
 export const validateStep1 = async (
   data: CheckoutFormData,
   setError: UseFormSetError<CheckoutFormData>,
@@ -11,16 +15,26 @@ export const validateStep1 = async (
 ): Promise<boolean> => {
   let hasError = false
 
-  const availableTel = async (ddi: string, tel: string) => {
-    return await vivoControleAPI.verifyTel(ddi, tel)
-  }
-  const availableEmail = async (email: string) => {
-    return await vivoControleAPI.verifyEmail(email)
-  }
-
-  if (await availableEmail(data.email!) !== 'VALIDO') {
-    setError('email', { message: 'Endereço de e-mail inexistente.' })
+  if (!data.email?.trim()) {
+    lastAcknowledgedEmailWarning = ''
+    setError('email', { message: 'Informe um e-mail válido.' })
     hasError = true
+  } else if (!EMAIL_REGEX.test(data.email)) {
+    lastAcknowledgedEmailWarning = ''
+    setError('email', { message: 'Informe um e-mail válido.' })
+    hasError = true
+  } else {
+    const emailStatus = await vivoControleAPI.verifyEmail(data.email)
+    if (emailStatus !== 'VALIDO') {
+      setError('email', { type: 'warning', message: 'Confirme se o e-mail está correto.' })
+      if (lastAcknowledgedEmailWarning !== data.email) {
+        lastAcknowledgedEmailWarning = data.email
+        hasError = true
+      }
+    } else {
+      lastAcknowledgedEmailWarning = ''
+      clearErrors('email')
+    }
   }
 
   if (!data.fullName?.trim() || data.fullName.trim().length < 2) {
@@ -45,12 +59,12 @@ export const validateStep1 = async (
     !/^\d{2} \d{4} \d{4}$/.test(data.tel) &&         // Reino Unido
     !/^\d{3} \d{3} \d{3}$/.test(data.tel)            // Portugal 
   ) {
-    setError('tel', { message: 'Número de telefone inválido.' })
+    setError('tel', { message: 'Número inválido...' })
     hasError = true
   } else {
-    const telValido = await availableTel(data.ddi!, data.tel)
+    const telValido = await vivoControleAPI.verifyTel(data.ddi!, data.tel)
     if (!telValido) {
-      setError('tel', { message: 'Celular inválido, digite novamente.' })
+      setError('tel', { message: 'Número inválido...' })
       hasError = true
     } else {
       clearErrors('tel')
@@ -151,10 +165,20 @@ export const validateStep4 = (
 ): boolean => {
   let hasError = false
 
-  if (!data.cpf?.trim() || !CPFValidator(data.cpf)) {
+  if (!data.cpf?.trim() || data.cpf.replace(/\D/g, '').length !== 11) {
+    lastAcknowledgedCpfWarning = ''
     setError('cpf', { message: 'Informe um CPF válido (000.000.000-00).' })
     hasError = true
-  } else { clearErrors('cpf') }
+  } else if (!CPFValidator(data.cpf)) {
+    setError('cpf', { type: 'warning', message: 'Confirme se o CPF está correto.' })
+    if (lastAcknowledgedCpfWarning !== data.cpf) {
+      lastAcknowledgedCpfWarning = data.cpf
+      hasError = true
+    }
+  } else {
+    lastAcknowledgedCpfWarning = ''
+    clearErrors('cpf')
+  }
 
   if (!data.bornDate?.trim() || !/^\d{2}\/\d{2}\/\d{4}$/.test(data.bornDate)) {
     setError('bornDate', { message: 'Informe uma data válida (dd/mm/aaaa).' })

@@ -33,7 +33,7 @@ function Index({ form, ddiOptions }: SecondStepProps) {
             )}
           />
           {errors.cpf && (
-            <p className="text-red-500 text-sm mt-1">{String(errors.cpf.message)}</p>)}
+            <p className={`text-sm mt-1 ${errors.cpf.type === 'warning' ? 'text-amber-600' : 'text-red-500'}`}>{String(errors.cpf.message)}</p>)}
         </div>
 
         <div>
