@@ -53,7 +53,6 @@ type ThirdStepData = {
 type FourthStepData = {
   bornDate: string,
   cpf: string,
-  motherName: string,
   primaryTel?: string,
   secondaryTel?: string,
   ddiAdditional?: string,

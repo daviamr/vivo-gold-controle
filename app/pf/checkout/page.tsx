@@ -389,7 +389,6 @@ function Index() {
         const fourthStepData = {
           cpf: data.cpf!,
           bornDate: data.bornDate!,
-          motherName: customerData.fourthStepData?.motherName ?? "",
           primaryTel: data.primaryTel!,
           secondaryTel: data.secondaryTel,
           ddiAdditional: data.ddiAdditional,
