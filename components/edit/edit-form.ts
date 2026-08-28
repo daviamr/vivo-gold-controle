@@ -1,0 +1,61 @@
+export type EditFormData = {
+  fullName: string
+  tel: string
+  ddi: string
+  email: string
+  mobileLine: string
+  mobileLineNumber: string
+  eSim: boolean
+  cep: string
+  homeNumber: string
+  street: string
+  district: string
+  city: string
+  uf: string
+  liveIn: string
+  hasBlockAndLot: boolean
+  block: string
+  lot: string
+  complement: string
+  landmark: string
+  floor: string
+  dueDay: string
+  cpf: string
+  bornDate: string
+  primaryTel: string
+  secondaryTel: string
+  ddiAdditional: string
+  termsOfUse: boolean
+  acceptOffers: boolean
+}
+
+export const initialEditForm: EditFormData = {
+  fullName: "",
+  tel: "",
+  ddi: "+55",
+  email: "",
+  mobileLine: "new_number",
+  mobileLineNumber: "",
+  eSim: true,
+  cep: "",
+  homeNumber: "",
+  street: "",
+  district: "",
+  city: "",
+  uf: "",
+  liveIn: "building",
+  hasBlockAndLot: false,
+  block: "",
+  lot: "",
+  complement: "",
+  landmark: "",
+  floor: "",
+  dueDay: "",
+  cpf: "",
+  bornDate: "",
+  primaryTel: "",
+  secondaryTel: "",
+  ddiAdditional: "+55",
+  termsOfUse: false,
+  acceptOffers: false,
+}

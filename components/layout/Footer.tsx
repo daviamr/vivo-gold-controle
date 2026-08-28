@@ -13,6 +13,9 @@ function Index() {
         <div className="flex flex-col justify-center items-center gap-2 tracking-wide">
           <span>Telefônica Brasil S.A CNPJ 02.558.157/0001-62. Copyright 2026. @Vivo. Todos os direitos reservados.</span>
           <span>Endereço: Av. Engenheiro Luis Carlos Berrini, 1376 - Cidade Monções, São Paulo, SP, Brasil, CEP: 04.571-936</span>
+          <a href="/politica-de-privacidade/" className="underline text-[#6c4598]">
+            Política de Privacidade
+          </a>
         </div>
       </div>
     </div>

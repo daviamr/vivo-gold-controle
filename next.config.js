@@ -1,10 +1,10 @@
 /** @type {import('next').NextConfig} */
-/** Caminho público onde o site é servido (ex.: https://exemplo/controle/). */
-const basePath = '/controle'
+/** Caminho público onde o site é servido. Vazio = raiz do bucket/domínio. */
+const basePath = ''
 
 const nextConfig = {
   output: 'export',
-  basePath,
+  ...(basePath ? { basePath } : {}),
   trailingSlash: true, // importante para S3
   env: {
     /** Usado pelo client para prefixar `/public`; o export não aplica basePath nos `src` de `next/image`. */
