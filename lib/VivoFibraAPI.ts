@@ -1,8 +1,29 @@
-import { Customer } from "@/interface/Customer";
-import { IPlan } from "@/interface/Plan";
-import { api } from "./api"
-
-const TELEFONIA_ORDER_PATH = "pedido-telefonia-movel"
+import { Customer } from "@/interface/Customer"
+import { IPlan } from "@/interface/Plan"
+import { fetchProducts } from "@/lib/api/products"
+import {
+  closeOrder,
+  createOrder,
+  updateOrder,
+  type CreateOrderPayload,
+  type OrderAddressComplement,
+  type UpdateOrderPayload,
+} from "@/lib/api/orders"
+import { resolvePartner } from "@/lib/api/partner-resolver"
+import { verifyEmail, verifyPhone, type EmailVerificationResult } from "@/lib/api/verification"
+import {
+  VIVO_CATEGORY,
+  VIVO_COMPANY_ID,
+  VIVO_COMPANY_NAME,
+  VIVO_JOURNEY,
+  VIVO_LANDING_PAGE,
+} from "@/lib/constants/vivo"
+import {
+  getOrderSession,
+  saveOrderSession,
+  toPartnerSessionFields,
+} from "@/lib/order-storage"
+import { applyPartnerHashToUrl } from "@/lib/partner-hash"
 
 type PlanExtra = {
   id: string
@@ -12,20 +33,7 @@ type PlanExtra = {
   checked?: boolean
 }
 
-type ConsultOrderFingerprintMeta = {
-  visitor_id: string
-  finger_print: {
-    os: { name: string; version: string }
-    device: string
-    browser: { name: string; version: string }
-    timezone: string
-    resolution: { dpr: number; width: number; height: number }
-    timezone_offset: number
-  }
-}
-
 export class VivoFibraAPI {
-
   static normalizePlanExtras(extras: unknown): PlanExtra[] {
     if (extras == null) return []
     if (Array.isArray(extras)) return extras as PlanExtra[]
@@ -33,29 +41,32 @@ export class VivoFibraAPI {
     return []
   }
 
-  async saveConsultOrder(plan: IPlan, mobileLine?: string): Promise<any> {
-    const [clientIp, fingerprint] = await Promise.all([
-      this.fetchClientIp(),
-      this.getFingerprintForPayload(),
-    ])
-    const payload = this.buildConsultOrderPayload(plan, mobileLine, {
-      clientIp,
-      fingerprint,
-    })
-    // console.log('>>> payload', payload)
-    const response = await api.post(TELEFONIA_ORDER_PATH,
-      payload, { headers: { 'Content-Type': 'application/json' } })
-    return response.data
+  async saveConsultOrder(plan: IPlan, mobileLine?: string): Promise<{ id?: number; order_token?: string }> {
+    const session = await this.ensureOrderSession()
+    if (!session) return {}
+
+    await updateOrder(
+      session.orderId,
+      session.orderToken,
+      this.buildPlanPayload(plan, mobileLine),
+    )
+
+    return { id: session.orderId, order_token: session.orderToken }
   }
 
-  async updateOrderProgress(orderId: number, partial: Record<string, unknown>): Promise<any> {
-    // console.log('>>> partial', partial)
-    const response = await api.put(
-      `${TELEFONIA_ORDER_PATH}/${orderId}`,
-      partial,
-      { headers: { 'Content-Type': 'application/json' } }
-    )
-    return response.data
+  async updateOrderProgress(orderId: number, partial: UpdateOrderPayload): Promise<unknown> {
+    const token = getOrderSession()?.orderToken
+    if (!token) {
+      throw new Error("Sessão do pedido não encontrada.")
+    }
+
+    return updateOrder(orderId, token, partial)
+  }
+
+  async closeCurrentOrder() {
+    const session = getOrderSession()
+    if (!session) return null
+    return closeOrder(session.orderId, session.orderToken)
   }
 
   static extractOrderId(data: unknown): number | undefined {
@@ -70,13 +81,12 @@ export class VivoFibraAPI {
     if (!data || typeof data !== "object") return undefined
     const o = data as Record<string, unknown>
     const nested = o.order && typeof o.order === "object"
-      ? (o.order as Record<string, unknown>).ordernumber
+      ? (o.order as Record<string, unknown>).ordernumber ?? (o.order as Record<string, unknown>).order_number
       : undefined
-    const num = nested ?? o.ordernumber ?? o.numero_pedido
+    const num = nested ?? o.ordernumber ?? o.order_number ?? o.numero_pedido
     return typeof num === "string" ? num : undefined
   }
 
-  /** YYYYMMDD em America/Sao_Paulo (UTC-3) + hífen + 5 dígitos aleatórios (10000–99999). */
   static generateClientOrderNumber(): string {
     const d = new Date()
     const parts = new Intl.DateTimeFormat("en-CA", {
@@ -90,63 +100,43 @@ export class VivoFibraAPI {
         if (p.type !== "literal") acc[p.type] = p.value
         return acc
       }, {})
-    const y = parts.year ?? ""
-    const m = parts.month ?? ""
-    const day = parts.day ?? ""
-    const ymd = `${y}${m}${day}`
+    const ymd = `${parts.year ?? ""}${parts.month ?? ""}${parts.day ?? ""}`
     const n = Math.floor(Math.random() * 90000) + 10000
     return `${ymd}${n}`
   }
 
-  buildConsultOrderPayload(
-    plan: IPlan,
-    mobileLine?: string,
-    meta?: { clientIp?: string; fingerprint?: ConsultOrderFingerprintMeta | null },
-  ) {
-    const now = this.brDateTime()
-    const baseMonthly = plan.pricing.base_monthly
-    const installationFee = plan.pricing.installation ?? 0
-    const additionalsMonthly = this.additionalsMonthlyTotal(plan)
+  buildPlanPayload(plan: IPlan, mobileLine?: string): UpdateOrderPayload {
+    const session = getOrderSession()
     const extrasList = VivoFibraAPI.normalizePlanExtras(plan.extras)
-    const lineAction = mobileLine ?? ""
+    const selected = extrasList.filter((extra) => extra.checked === true || extra.default_checked === true)
+    const extrasPrice = selected.reduce((sum, extra) => sum + (Number(extra.price) || 0), 0)
+    const baseMonthly = plan.pricing.base_monthly
+
     return {
-      pedido: {
-        status: "aberto",
-        typeclient: "PF",
-        landing_page: "vivo_controle",
-        client_ip: meta?.clientIp ?? "",
-        finger_print: meta?.fingerprint?.finger_print ?? {
-          os: { name: "Unknown", version: "0.0.0" },
-          device: "desktop",
-          browser: { name: "Unknown", version: "0.0.0" },
-          timezone: "GMT+0",
-          resolution: { dpr: 1, width: 0, height: 0 },
-          timezone_offset: 0,
-        },
-        consulta: 1,
-        pedido: 0,
-        url: typeof window !== "undefined" ? window.location.href : "",
-        line_action: lineAction,
-        created_at: now,
-        updated_at: now,
-        plan: {
-          id: plan.id,
-          category: plan.category,
-          plan_name: plan.name,
-          base_price: baseMonthly,
-          landing_page: "vivo_controle",
-          selected_additionals: extrasList
-            .filter((e) => e.checked === true)
-            .map((e) => ({ id: e.id, title: e.title, price: e.price })),
-        },
-        price_summary: {
-          total: baseMonthly + additionalsMonthly,
-          currency: "BRL",
-          base_monthly: baseMonthly,
-          installation_fee: installationFee,
-          additionals_monthly: additionalsMonthly,
-        }
+      partner_id: session?.partnerId ?? null,
+      business_partner: session?.partnerName ?? VIVO_COMPANY_NAME,
+      category: VIVO_CATEGORY,
+      landing_page: VIVO_LANDING_PAGE,
+      plan: {
+        id: String(plan.id),
+        name: plan.name,
+        speed: plan.offer_title,
+        value: baseMonthly,
+        original_value: null,
       },
+      selected_extras: selected.map((extra) => ({
+        id: extra.id,
+        label: extra.title,
+        description: extra.title,
+        price: extra.price,
+        bonus: null,
+      })),
+      price_summary: {
+        plan_price: baseMonthly,
+        extras_price: extrasPrice,
+        total_monthly: baseMonthly + extrasPrice,
+      },
+      ...(mobileLine ? { line_action: mobileLine } : {}),
     }
   }
 
@@ -158,49 +148,39 @@ export class VivoFibraAPI {
     mobileLineNumber?: string
     eSim?: boolean
     ddi?: string
-  }) {
+    emailVerification?: EmailVerificationResult | null
+  }): UpdateOrderPayload {
     return {
-      pedido: {
-        fullname: this.formatFullName(args.fullName),
-        phone: this.buildPhoneWithCountry(args.ddi, args.tel),
-        email: args.email.toLowerCase(),
-        pedido: 1,
-        line_action: args.mobileLine ?? "",
-        ...(args.mobileLineNumber
-          ? { line_number_informed: this.onlyNumber(args.mobileLineNumber) }
-          : {}),
-        wants_esim: args.eSim ? 1 : 0,
-        typeclient: 'PF'
-      }
+      full_name: this.formatFullName(args.fullName),
+      phone: this.buildPhoneWithCountry(args.ddi, args.tel),
+      email: args.email.toLowerCase(),
+      is_email_valid: args.emailVerification?.isValid ?? false,
+      email_validation_reason: args.emailVerification?.reason ?? "NOT_CHECKED",
+      line_action: args.mobileLine ?? "",
+      ...(args.mobileLineNumber
+        ? { line_number_informed: this.onlyNumber(args.mobileLineNumber) }
+        : {}),
+      wants_esim: args.eSim ? 1 : 0,
     }
   }
 
-  buildStep2Payload(addr: Customer["address"]) {
-    const building =
-      addr.liveIn === "house" ? "house" : addr.liveIn === "building" ? "building" : addr.liveIn ?? ""
-    const body: { pedido: Record<string, unknown> } = {
-      pedido: {
-        cep: addr.cep,
-        address: addr.street ?? addr.logradouro ?? "",
-        addressnumber: addr.homeNumber,
-        district: addr.district ?? addr.bairro ?? "",
-        city: addr.city ?? addr.localidade ?? "",
-        state: addr.uf ?? "",
-        buildingorhouse: building,
-      }
+  buildStep2Payload(addr: Customer["address"]): UpdateOrderPayload {
+    const complement = this.buildAddressComplement(addr)
+
+    return {
+      zip_code: this.onlyNumber(addr.cep ?? ""),
+      address: addr.street ?? addr.logradouro ?? "",
+      address_number: addr.homeNumber,
+      district: addr.district ?? addr.bairro ?? "",
+      city: addr.city ?? addr.localidade ?? "",
+      state: addr.uf ?? "",
+      address_complement: complement,
+      address_reference_point: complement.reference_point,
     }
-    if (addr.block) body.pedido.addressblock = addr.block
-    if (addr.lot) body.pedido.addresslot = addr.lot
-    const complement = addr.complement ?? addr.complemento
-    if (complement) body.pedido.addresscomplement = complement
-    if (addr.landmark) body.pedido.addressreferencepoint = addr.landmark
-    if (addr.floor) body.pedido.addressFloor = addr.floor
-    return body
   }
 
-  buildStep3Payload(dueDay: string) {
-    const n = parseInt(dueDay, 10)
-    return { pedido: { dueday: Number.isFinite(n) ? n : dueDay } }
+  buildStep3Payload(dueDay: string): UpdateOrderPayload {
+    return { due_day: dueDay }
   }
 
   buildStep4Payload(args: {
@@ -213,27 +193,20 @@ export class VivoFibraAPI {
     termsOfUse?: boolean
     acceptOffers?: boolean
     orderNumber?: string
-  }) {
-    const body: { pedido: Record<string, unknown> } = {
-      pedido: {
-        cpf: this.onlyNumber(args.cpf),
-        birthdate: args.bornDate,
-        phone: this.buildPhoneWithCountry(args.ddi, args.primaryTel),
-        terms_accepted: args.termsOfUse ? 1 : 0,
-        accept_offers: args.acceptOffers ? 1 : 0,
-        status: "fechado",
-      }
+  }): UpdateOrderPayload {
+    return {
+      cpf: this.onlyNumber(args.cpf),
+      birth_date: args.bornDate,
+      phone: this.buildPhoneWithCountry(args.ddi, args.primaryTel),
+      additional_phone: args.secondaryTel?.trim()
+        ? this.buildPhoneWithCountry(args.ddiAdditional, args.secondaryTel)
+        : null,
+      terms_accepted: Boolean(args.termsOfUse),
+      accept_offers: Boolean(args.acceptOffers),
+      order_number: args.orderNumber,
+      is_consultation: false,
+      is_order: true,
     }
-    if (args.secondaryTel?.trim()) {
-      body.pedido.phoneAdditional = this.buildPhoneWithCountry(
-        args.ddiAdditional,
-        args.secondaryTel,
-      )
-    }
-    if (args.orderNumber) {
-      body.pedido.ordernumber = args.orderNumber
-    }
-    return body
   }
 
   buildPhoneWithCountry(ddi: string | undefined, nationalNumber: string): string {
@@ -245,54 +218,132 @@ export class VivoFibraAPI {
 
   additionalsMonthlyTotal(plan: IPlan): number {
     return VivoFibraAPI.normalizePlanExtras(plan.extras)
-      .filter((e) => e.checked === true)
-      .reduce((sum, e) => sum + (Number(e.price) || 0), 0)
-  }
-
-  brDateTime(): string {
-    return new Date().toLocaleString("pt-BR", {
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-      second: "2-digit",
-      hour12: false,
-    })
+      .filter((extra) => extra.checked === true)
+      .reduce((sum, extra) => sum + (Number(extra.price) || 0), 0)
   }
 
   async verifyTel(ddi: string, tel: string) {
-    if (!this.onlyNumber(ddi).startsWith('55')) return true;
-
-    const payload = {
-      telefone: this.onlyNumber(tel)
-    }
-    const response = await api.post('verificar-telefone',
-      payload, { headers: { 'Content-Type': 'application/json' } })
-
-    console.log('>>> response verifyTel', response.data)
-    return response.data.numero_valido
+    if (!this.onlyNumber(ddi).startsWith("55")) return true
+    const valid = await verifyPhone(tel)
+    return valid !== false
   }
 
   async verifyEmail(email: string) {
-    const payload = {
-      email: email
-    }
-    const response = await api.post('verificar-email',
-      payload, { headers: { 'Content-Type': 'application/json' } })
-
-    console.log('>>> response verifyEmail', response.data)
-    return response.data.email_status
+    const result = await verifyEmail(email)
+    return result?.isValid ? "VALIDO" : "INVALIDO"
   }
 
   async getPlans() {
     try {
-      const response = await api.get('/planos/telefonia-movel?landing_page=vivo_controle')
-      const availablePlans = response.data.filter((plan: IPlan) => plan.online)
-      return availablePlans
+      return await fetchProducts()
     } catch (error) {
       console.log(error)
+      return []
     }
+  }
+
+  private async ensureOrderSession() {
+    const existing = getOrderSession()
+    if (existing) return existing
+
+    const customer = this.readCustomer()
+    const cep = customer?.address?.cep ?? ""
+    let partner = null
+    try {
+      if (cep) partner = await resolvePartner(cep)
+    } catch {
+      partner = null
+    }
+
+    if (partner?.partner_hash) {
+      applyPartnerHashToUrl(partner.partner_hash)
+    }
+
+    const [clientIp, fingerprint] = await Promise.all([
+      this.fetchClientIp(),
+      this.getFingerprintForPayload(),
+    ])
+
+    const payload: CreateOrderPayload = {
+      status: "ABERTO",
+      company: VIVO_COMPANY_NAME,
+      company_id: VIVO_COMPANY_ID,
+      business_partner: partner?.partner_name ?? VIVO_COMPANY_NAME,
+      partner_id: partner?.partner_id ?? null,
+      category: VIVO_CATEGORY,
+      client_type: "PF",
+      landing_page: VIVO_LANDING_PAGE,
+      zip_code: this.onlyNumber(cep),
+      address: customer?.address?.street ?? customer?.address?.logradouro ?? "",
+      address_number: customer?.address?.homeNumber ?? "",
+      district: customer?.address?.district ?? customer?.address?.bairro ?? "",
+      city: customer?.address?.city ?? customer?.address?.localidade ?? "",
+      state: customer?.address?.uf ?? "",
+      address_complement: this.buildAddressComplement(customer?.address),
+      client_ip: clientIp,
+      fingerprint,
+      url: this.buildMarketingUrl(),
+      lp_url: this.buildLpUrl(partner?.partner_hash),
+      terms_accepted: false,
+      accept_offers: false,
+      is_consultation: true,
+      is_order: false,
+      journey: [...VIVO_JOURNEY],
+      previous_order_id: null,
+    }
+
+    const response = await createOrder(payload)
+    if (!response?.order?.id || !response.order_token) {
+      return null
+    }
+
+    const session = {
+      orderId: response.order.id,
+      orderToken: response.order_token,
+      expiresAt: response.expires_at,
+      ...toPartnerSessionFields(partner),
+    }
+    saveOrderSession(session)
+    return session
+  }
+
+  private buildAddressComplement(addr?: Customer["address"]): OrderAddressComplement {
+    const building =
+      addr?.liveIn === "house" ? "house" : addr?.liveIn === "building" ? "building" : addr?.liveIn ?? "house"
+
+    return {
+      building_or_house: building,
+      unit_type: null,
+      unit_number: null,
+      floor: addr?.floor?.trim() || null,
+      block: addr?.block?.trim() || null,
+      lot: addr?.lot?.trim() || null,
+      square: addr?.block?.trim() || null,
+      home_complement: addr?.complement ?? addr?.complemento ?? null,
+      reference_point: addr?.landmark?.trim() || null,
+    }
+  }
+
+  private readCustomer(): Customer | null {
+    if (typeof window === "undefined") return null
+    try {
+      const raw = localStorage.getItem("customer")
+      return raw ? JSON.parse(raw) as Customer : null
+    } catch {
+      return null
+    }
+  }
+
+  private buildMarketingUrl() {
+    if (typeof window === "undefined") return ""
+    const { origin, search } = window.location
+    return search ? `${origin}/${search}` : `${origin}/`
+  }
+
+  private buildLpUrl(partnerHash?: string) {
+    if (typeof window === "undefined") return ""
+    if (partnerHash) return `${window.location.origin}/${partnerHash}`
+    return window.location.href
   }
 
   private static isLoopbackOrLocalIp(ip: string): boolean {
@@ -303,7 +354,6 @@ export class VivoFibraAPI {
     return false
   }
 
-  /** IP público visto ao sair para a internet (compatível com SPA/host estático, ex.: S3). */
   private async fetchClientIp(): Promise<string> {
     if (typeof window === "undefined") return ""
     try {
@@ -317,28 +367,17 @@ export class VivoFibraAPI {
     return ""
   }
 
-  private async getFingerprintForPayload(): Promise<ConsultOrderFingerprintMeta | null> {
-    if (typeof window === "undefined") return null
-    try {
-      const FP = (await import("@fingerprintjs/fingerprintjs")).default
-      const fp = await FP.load()
-      const { visitorId } = await fp.get()
-      const { finger_print } = this.getFingerprint()
-      return { visitor_id: visitorId, finger_print }
-    } catch {
-      try {
-        const { finger_print } = this.getFingerprint()
-        return { visitor_id: "", finger_print }
-      } catch {
-        return null
-      }
+  private async getFingerprintForPayload() {
+    const { finger_print } = this.getFingerprint()
+    return {
+      ...finger_print,
+      language: typeof navigator !== "undefined" ? navigator.language : "pt-BR",
     }
   }
 
   getFingerprint() {
-    const ua = navigator.userAgent;
+    const ua = navigator.userAgent
 
-    // OS
     const getOS = () => {
       if (/android/i.test(ua)) {
         const m = ua.match(/Android\s([0-9.]+)/)?.[1]
@@ -348,57 +387,51 @@ export class VivoFibraAPI {
         const m = ua.match(/OS\s([0-9_]+)/)?.[1]
         return { name: "iOS", version: m ? m.replace(/_/g, ".") : "0.0.0" }
       }
-      if (/windows/i.test(ua)) return { name: 'Windows', version: '10.0.0' };
-      if (/mac/i.test(ua)) return { name: 'MacOS', version: '10.0.0' };
-      if (/linux/i.test(ua)) return { name: 'Linux', version: '0.0.0' };
-      return { name: 'Unknown', version: '0.0.0' };
-    };
+      if (/windows/i.test(ua)) return { name: "Windows", version: "10.0.0" }
+      if (/mac/i.test(ua)) return { name: "MacOS", version: "10.0.0" }
+      if (/linux/i.test(ua)) return { name: "Linux", version: "0.0.0" }
+      return { name: "Unknown", version: "0.0.0" }
+    }
 
-    // Device
     const getDevice = () => {
-      if (/mobile/i.test(ua)) return 'mobile';
-      if (/tablet/i.test(ua)) return 'tablet';
-      return 'desktop';
-    };
+      if (/mobile/i.test(ua)) return "mobile"
+      if (/tablet/i.test(ua)) return "tablet"
+      return "desktop"
+    }
 
-    // Browser
     const getBrowser = () => {
       const browsers = [
-        { name: 'Chrome', regex: /Chrome\/([0-9.]+)/ },
-        { name: 'Firefox', regex: /Firefox\/([0-9.]+)/ },
-        { name: 'Safari', regex: /Version\/([0-9.]+).*Safari/ },
-        { name: 'Edge', regex: /Edg\/([0-9.]+)/ },
-      ];
+        { name: "Chrome", regex: /Chrome\/([0-9.]+)/ },
+        { name: "Firefox", regex: /Firefox\/([0-9.]+)/ },
+        { name: "Safari", regex: /Version\/([0-9.]+).*Safari/ },
+        { name: "Edge", regex: /Edg\/([0-9.]+)/ },
+      ]
       for (const b of browsers) {
-        const match = ua.match(b.regex);
-        if (match) return { name: b.name, version: match[1] };
+        const match = ua.match(b.regex)
+        if (match) return { name: b.name, version: match[1] }
       }
-      // fallback — pega o que vier no UA (ex: "Not(A:Brand")
-      const fallback = ua.match(/([A-Za-z]+)\/([0-9.]+)/);
+      const fallback = ua.match(/([A-Za-z]+)\/([0-9.]+)/)
       return fallback
         ? { name: fallback[1], version: fallback[2] }
-        : { name: 'Unknown', version: '0.0.0' };
-    };
+        : { name: "Unknown", version: "0.0.0" }
+    }
 
-    const timezoneOffset = new Date().getTimezoneOffset(); // ex: 180 para GMT-3
-
-    // Resolution
-    const resolution = {
-      dpr: window.devicePixelRatio,
-      width: window.screen.width,
-      height: window.screen.height,
-    };
+    const timezoneOffset = new Date().getTimezoneOffset()
 
     return {
       finger_print: {
         os: getOS(),
         device: getDevice(),
         browser: getBrowser(),
-        timezone: `GMT${timezoneOffset > 0 ? '-' : '+'}${Math.abs(timezoneOffset / 60)}`,
-        resolution,
+        timezone: `GMT${timezoneOffset > 0 ? "-" : "+"}${Math.abs(timezoneOffset / 60)}`,
+        resolution: {
+          dpr: window.devicePixelRatio,
+          width: window.screen.width,
+          height: window.screen.height,
+        },
         timezone_offset: timezoneOffset,
-      }
-    };
+      },
+    }
   }
 
   formatFullName(value: string): string {
@@ -412,6 +445,6 @@ export class VivoFibraAPI {
   }
 
   onlyNumber(value: string): string {
-    return value.replace(/\D/g, '');
+    return value.replace(/\D/g, "")
   }
 }

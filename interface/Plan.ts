@@ -12,6 +12,7 @@ export interface IPlan {
   created_at: string,
   updated_at: string,
   extras: Extras
+  extra_images?: string[]
 }
 
 type OfferConditions = {
@@ -30,6 +31,7 @@ type Details = {
   description: string,
   highlight_top: boolean,
   highlight_bottom: boolean
+  icon?: string | null
 }[]
 
 type Extras = {
@@ -38,4 +40,5 @@ type Extras = {
   title: string,
   default_checked: boolean,
   checked?: boolean
+  images?: string[]
 }[]

@@ -1,25 +1,53 @@
-import Image from "next/image"
-import { withBasePath } from "@/lib/basePath"
+'use client'
 
-function Index() {
+import { Copyright } from "lucide-react"
+import { useRouter } from "next/navigation"
+import { formatCnpj } from "@/lib/cnpj"
+import { usePartner } from "@/hooks/use-partner-id"
+import { withPartnerPath } from "@/lib/partner-hash"
+import VivoLogo from "./VivoLogo"
+
+export default function Footer({ setIsTalkToUsOpen }: { setIsTalkToUsOpen: (isOpen: boolean) => void }) {
+  const router = useRouter()
+  const { partnerName, partnerLogoUrl, partnerCnpj } = usePartner()
+  const privacyPath = withPartnerPath("/politica-de-privacidade")
+  const formattedCnpj = partnerCnpj ? formatCnpj(partnerCnpj) : null
+
   return (
-    <div className="relative w-full bottom-0 bg-white">
-      <div className="container m-auto px-4 py-6">
-        <div className="flex items-center justify-between mb-6">
-          <Image src={withBasePath("/icon-f-1.svg")} alt="logo" width={120} height={40} />
-          <Image src={withBasePath("/icon-f-2.svg")} alt="logo" width={80} height={40} />
-          <Image src={withBasePath("/icon-f-3.png")} alt="logo" width={120} height={40} />
-        </div>
-        <div className="flex flex-col justify-center items-center gap-2 tracking-wide">
-          <span>Telefônica Brasil S.A CNPJ 02.558.157/0001-62. Copyright 2026. @Vivo. Todos os direitos reservados.</span>
-          <span>Endereço: Av. Engenheiro Luis Carlos Berrini, 1376 - Cidade Monções, São Paulo, SP, Brasil, CEP: 04.571-936</span>
-          <a href="/politica-de-privacidade/" className="underline text-[#6c4598]">
-            Política de Privacidade
-          </a>
+    <footer className="bg-white">
+      <div className="py-6 bg-[#3F3F3F]">
+        <div className="container max-w-7xl mx-auto px-4">
+          <nav className="text-center md:text-left flex flex-wrap gap-2 items-center justify-center sm:gap-8 text-white">
+            <a href="#" className="flex items-center gap-2 min-w-80 md:min-w-auto"><Copyright /> 2026 - Todos os direitos reservados</a>
+            <p className="min-w-80 md:min-w-auto cursor-pointer" onClick={() => router.push(privacyPath)}>Política de Privacidade</p>
+            <p className="min-w-80 md:min-w-auto cursor-pointer" onClick={() => setIsTalkToUsOpen(true)}>Fale Conosco</p>
+          </nav>
         </div>
       </div>
-    </div>
+
+      <div className="container max-w-7xl mx-auto px-4 py-1">
+        <div className="flex flex-wrap justify-center items-center gap-2 sm:gap-32">
+          <div className="flex items-center gap-8">
+            <VivoLogo />
+
+            {partnerLogoUrl && (
+              <img
+                className="my-4 w-auto h-[39px]"
+                src={partnerLogoUrl}
+                alt={partnerName ?? "Parceiro"}
+              />
+            )}
+          </div>
+
+          {(partnerName || formattedCnpj) && (
+            <p className="text-xs text-center max-w-120 text-[#747474]">
+              {partnerName && `${partnerName} - Parceiro Vivo Empresa`}
+              {partnerName && formattedCnpj && <br />}
+              {formattedCnpj}
+            </p>
+          )}
+        </div>
+      </div>
+    </footer>
   )
 }
-
-export default Index

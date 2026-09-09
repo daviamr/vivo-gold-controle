@@ -19,7 +19,7 @@ async function Index() {
       <div className='container m-auto px-4 mb-12'>
         <div className='my-8 mt-18'>
           <p className='uppercase font-bold'>Vantagens</p>
-          <h3 className='text-3xl max-w-160 font-light'>Confira todos os benefícios dos planos Vivo Controle</h3>
+          <h3 className='text-3xl font-light'>Confira todos os benefícios dos planos Vivo Controle</h3>
         </div>
 
         <Benefits />

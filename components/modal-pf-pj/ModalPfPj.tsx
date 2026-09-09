@@ -12,6 +12,10 @@ import { Button } from "../ui/button"
 import { ViaCEP, ViaCepResponse } from "@/lib/ViaCEP"
 import { cleanNumbers } from "@/lib/helpers/formatters"
 import DefaultModal from '../default-modal/DefaultModal'
+import VivoLogo from "../layout/VivoLogo"
+import { resolvePartner } from "@/lib/api/partner-resolver"
+import { applyPartnerHashToUrl } from "@/lib/partner-hash"
+import { getOrderSession, saveOrderSession, toPartnerSessionFields } from "@/lib/order-storage"
 
 export const cepSchema = z.object({
   cep: z
@@ -67,6 +71,16 @@ function Index() {
 
     try {
       localStorage.setItem('customer', JSON.stringify({ address: { ...data, ...CEPData } }))
+      try {
+        const partner = await resolvePartner(data.cep)
+        if (partner?.partner_hash) applyPartnerHashToUrl(partner.partner_hash)
+        const current = getOrderSession()
+        if (current) {
+          saveOrderSession({ ...current, ...toPartnerSessionFields(partner) })
+        }
+      } catch {
+        // Keep going if the resolver is unavailable.
+      }
     } catch (error: any) {
       console.log('error on send', error)
     } finally {
@@ -96,7 +110,8 @@ function Index() {
       <div className="w-full grid max-w-125 bg-default-purple rounded-sm lg:grid-cols-2 lg:flex-row lg:items-center lg:max-w-275">
 
         <div
-          className="px-4 py-14">
+          className="px-4 py-14 flex flex-col items-center justify-center gap-4">
+          <VivoLogo variant="modal" />
           <p className='max-w-90 m-auto text-white text-[26px] text-center font-light lg:text-3xl lg:max-w-120'>Consulte os planos disponíveis para sua região</p>
         </div>
 

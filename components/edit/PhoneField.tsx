@@ -19,7 +19,7 @@ export default function PhoneField({ id, ddi, value, onDdiChange, onValueChange,
 
   return (
     <div>
-      <div className="flex gap-2">
+      <div className="flex flex-wrap gap-2 min-w-0">
         <Select
           key={ddi}
           value={ddi}
@@ -27,7 +27,7 @@ export default function PhoneField({ id, ddi, value, onDdiChange, onValueChange,
             onDdiChange(next)
             onValueChange("")
           }}>
-          <SelectTrigger className="w-[110px]">
+          <SelectTrigger className="w-[110px] shrink-0">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>

@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import PhoneField from "./PhoneField"
 import type { EditFormData } from "./edit-form"
+import { withPartnerPath } from "@/lib/partner-hash"
 
 type Props = {
   form: EditFormData
@@ -101,7 +102,7 @@ export default function EditFourthSection({ form, onChange, errors = {} }: Props
           <label
             htmlFor="edit-termsOfUse"
             className={`font-normal text-sm ${errors.termsOfUse ? "text-red-500 underline" : ""}`}>
-            Aceito os <span className="underline">Termos e Condições de Uso</span>.
+            Aceito os <a href={withPartnerPath("/termos-de-uso")} target="_blank" rel="noopener noreferrer" className="underline">Termos e Condições de Uso</a>.
           </label>
         </div>
         {errors.termsOfUse && <p className="text-red-500 text-sm">{errors.termsOfUse}</p>}

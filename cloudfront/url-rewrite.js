@@ -2,8 +2,8 @@
  * CloudFront Function (Viewer Request)
  *
  * O origin S3 REST não mapeia `/pf/` para `/pf/index.html`.
- * Sem este rewrite, o CloudFront devolve o index.html da raiz (HTML)
- * para rotas e JS que não existem — daí o "Unexpected token '<'".
+ * Também remove o hash do parceiro (`/{hash}/pf/` → `/pf/index.html`)
+ * para o Next.js static export continuar servindo as rotas reais.
  */
 function handler(event) {
   var request = event.request
@@ -11,6 +11,26 @@ function handler(event) {
 
   if (uri.includes(".")) {
     return request
+  }
+
+  var known = {
+    pf: true,
+    pj: true,
+    "politica-de-privacidade": true,
+    "termos-de-uso": true,
+    editar: true,
+    "editar-concluido": true,
+    retomar: true,
+  }
+
+  var parts = uri.split("/").filter(Boolean)
+  if (parts.length && !known[parts[0]]) {
+    parts = parts.slice(1)
+    uri = parts.length ? "/" + parts.join("/") : "/"
+  }
+
+  if (uri !== "/" && !uri.endsWith("/")) {
+    uri += "/"
   }
 
   if (uri.endsWith("/")) {

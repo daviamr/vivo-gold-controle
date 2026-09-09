@@ -1,9 +1,12 @@
+import { clearOrderSession } from "@/lib/order-storage"
+
 export const CUSTOMER_STORAGE_KEY = "customer"
 export const KEEP_CUSTOMER_AFTER_RESUME_KEY = "keep-customer-after-resume"
 
 export function clearCheckoutFlow() {
   try {
     localStorage.removeItem(CUSTOMER_STORAGE_KEY)
+    clearOrderSession()
   } catch {
     // localStorage unavailable
   }

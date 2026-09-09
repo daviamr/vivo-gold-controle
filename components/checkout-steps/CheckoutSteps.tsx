@@ -5,10 +5,10 @@ function Index({ step }: CheckoutStepsProps) {
         (step === 3) ? 'w-[75%]' :
           (step === 4) ? 'w-[100%]' : 'w-0'
 
-  const liDefaultStyle = `relative flex justify-center items-center m-auto rounded-full w-9 h-9 shadow`
-  const spanDefaultStyle = `absolute text-sm`
+  const liDefaultStyle = `relative flex justify-center items-center m-auto rounded-full w-8 h-8 text-sm shadow sm:w-9 sm:h-9`
+  const spanDefaultStyle = `absolute text-[11px] sm:text-sm whitespace-nowrap`
   return (
-    <div className="relative max-w-180 top-0 m-auto">
+    <div className="relative max-w-180 top-0 m-auto px-1">
       <ul className="grid grid-cols-4 text-center text-gray-600">
         <li
           className={`${liDefaultStyle} ${(step >= 1 ? 'bg-default-purple text-white font-bold' : 'bg-white')}`}>

@@ -182,35 +182,40 @@ function buildPhone(ddi: string, national: string): string {
 
 export function buildSecondCallPayload(form: EditFormData): SecondCallUpdateData {
   const payload: SecondCallUpdateData = {
-    fullname: form.fullName || undefined,
+    full_name: form.fullName || undefined,
     phone: buildPhone(form.ddi, form.tel) || undefined,
     email: form.email || undefined,
     line_action: form.mobileLine || undefined,
     wants_esim: form.eSim ? 1 : 0,
-    cep: form.cep || undefined,
+    zip_code: form.cep || undefined,
     address: form.street || undefined,
-    addressnumber: form.homeNumber || undefined,
+    address_number: form.homeNumber || undefined,
     district: form.district || undefined,
     city: form.city || undefined,
     state: form.uf || undefined,
-    buildingorhouse: form.liveIn || undefined,
-    dueday: form.dueDay || undefined,
+    due_day: form.dueDay || undefined,
     cpf: onlyDigits(form.cpf) || undefined,
-    birthdate: form.bornDate || undefined,
+    birth_date: form.bornDate || undefined,
     terms_accepted: form.termsOfUse,
     accept_offers: form.acceptOffers,
+    address_complement: {
+      building_or_house: form.liveIn || "house",
+      unit_type: null,
+      unit_number: null,
+      floor: form.floor || null,
+      block: form.block || null,
+      lot: form.lot || null,
+      square: form.block || null,
+      home_complement: form.complement || null,
+      reference_point: form.landmark || null,
+    },
   }
 
   if (form.mobileLineNumber) {
     payload.line_number_informed = onlyDigits(form.mobileLineNumber)
   }
-  if (form.block) payload.addressblock = form.block
-  if (form.lot) payload.addresslot = form.lot
-  if (form.complement) payload.addresscomplement = form.complement
-  if (form.landmark) payload.addressreferencepoint = form.landmark
-  if (form.floor) payload.addressFloor = form.floor
   if (form.secondaryTel) {
-    payload.phoneAdditional = buildPhone(form.ddiAdditional, form.secondaryTel)
+    payload.additional_phone = buildPhone(form.ddiAdditional, form.secondaryTel)
   }
 
   return payload

@@ -1,6 +1,6 @@
 'use client'
 
-import { ArrowLeft, ArrowRight, Check, ChevronDown, ChevronUp, Smartphone, Wifi } from "lucide-react"
+import { ArrowLeft, ArrowRight, Check, ChevronDown, ChevronUp, Smartphone } from "lucide-react"
 import Image from "next/image"
 import { useEffect, useState } from "react"
 import { Button } from "../ui/button"
@@ -8,7 +8,6 @@ import { useRouter } from "next/navigation"
 import { Checkbox } from "../ui/checkbox"
 import { Label } from "../ui/label"
 import { VivoFibraAPI } from "@/lib/VivoFibraAPI"
-import { withBasePath } from "@/lib/basePath"
 import { IPlan } from "@/interface/Plan"
 import z from "zod"
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -21,9 +20,6 @@ export const planSchema = z.object({
 export type PlanFormData = z.infer<typeof planSchema>
 
 function Index() {
-  const ICONS = {
-    APPS: Array.from({ length: 6 }, () => withBasePath('/icon-netflix.png')),
-  }
   const [plans, setPlans] = useState<any>(null)
   const router = useRouter()
   const [openDetails, setOpenDetails] = useState(false)
@@ -54,11 +50,15 @@ function Index() {
         customer.firstStepData?.mobileLine || 'new_number',
       )
       console.log(res)
-      const orderId = VivoFibraAPI.extractOrderId(res)
+      const orderId = res.id ?? VivoFibraAPI.extractOrderId(res)
       console.log(orderId)
       localStorage.setItem(
         'customer',
-        JSON.stringify({ ...dataToSave, ...(orderId ? { orderId } : {}) }),
+        JSON.stringify({
+          ...dataToSave,
+          ...(orderId ? { orderId } : {}),
+          ...(res.order_token ? { orderToken: res.order_token } : {}),
+        }),
       )
     } catch (e) {
       console.error('Erro ao registrar consulta do plano:', e)
@@ -145,7 +145,9 @@ function Index() {
               <div className="relative flex flex-col h-full max-w-[378px] border rounded-sm bg-white" key={`${currentPage}-${index}`}>
 
                 <div className="p-4 pt-8">
-                  <span className="absolute -top-4 left-0 text-sm bg-default-purple text-white py-1 px-6 rounded-sm rounded-bl-none uppercase">Volta às Aulas &#128214;</span>
+                  {plan.badge && (
+                    <span className="absolute -top-4 left-0 text-sm bg-default-purple text-white py-1 px-6 rounded-sm rounded-bl-none uppercase">{plan.badge}</span>
+                  )}
 
                   <p>{plan.name}</p>
                   <div className="flex gap-2 items-baseline mt-1 pb-2">
@@ -191,12 +193,12 @@ function Index() {
                           onCheckedChange={(value) => handleCheckedChange(index, value as boolean)} />
                         <Label htmlFor="moreData" className="text-sm font-bold opacity-75">{plan?.extras[0]?.title} para suas redes sociais e vídeo por R$ {plan?.extras[0]?.price}</Label>
                       </div>
-                      <div className="flex items-center gap-2 mt-2 lg:pl-8">
-                        {ICONS.APPS.map((icon, index) => (
+                      <div className="flex flex-wrap items-center gap-2 mt-2 lg:pl-8">
+                        {(plan.extra_images?.length ? plan.extra_images : plan.extras[0]?.images ?? []).map((icon, iconIndex) => (
                           <Image
-                            key={index}
+                            key={iconIndex}
                             src={icon}
-                            alt={`app`}
+                            alt="app"
                             width={32}
                             height={32}
                             className="rounded-sm" />
@@ -213,12 +215,14 @@ function Index() {
                       key={detailIndex}
                       className="flex items-center justify-between mx-4 rounded-sm bg-[#f0f0f0] p-4">
                       <p className="text-sm">{detail.title}</p>
-                      <Image
-                        src={detail.images[0] || withBasePath('/icon-netflix.png')}
-                        alt="app"
-                        width={32}
-                        height={32}
-                        className="rounded-sm" />
+                      {detail.images[0] && (
+                        <Image
+                          src={detail.images[0]}
+                          alt={detail.title}
+                          width={32}
+                          height={32}
+                          className="rounded-sm" />
+                      )}
                     </div>
                   ))}
 
@@ -244,48 +248,24 @@ function Index() {
 
                 {openDetails && (
                   <div className="px-4 pb-8">
-                    <div className="pb-4">
-
-                      <p className="text-sm pb-1 font-semibold">6 meses de Amazon Prime de cortesia</p>
-                      <Image
-                        src={withBasePath('/icon-netflix.png')}
-                        alt={`app`}
-                        width={32}
-                        height={32}
-                        className="rounded-sm" />
-                    </div>
-
-                    <div className="pb-4">
-                      <p className="text-sm pb-1 font-semibold">1 ano grátis de IA com Perplexity Pro</p>
-                      <Image
-                        src={withBasePath('/icon-netflix.png')}
-                        alt={`app`}
-                        width={32}
-                        height={32}
-                        className="rounded-sm" />
-                    </div>
-
-                    <div className="pb-4">
-                      <p className="text-sm font-semibold">Apps Inclusos</p>
-                      <p className="text-sm pb-1 opacity-75">Newco Play</p>
-                      <Image
-                        src={withBasePath('/icon-netflix.png')}
-                        alt={`app`}
-                        width={32}
-                        height={32}
-                        className="rounded-sm mb-4" />
-                    </div>
-
-                    <div>
-                      <p className="text-sm pb-4 font-semibold">Instalação com Wi-Fi Grátis</p>
-                      <p className="text-sm pb-4 font-semibold">Modem Grátis</p>
-                      <p className="text-sm pb-1 font-semibold">Download</p>
-                      <p className="text-sm pb-4">172 Kbps + 599,8 Mbps de bônus*</p>
-                      <p className="text-sm pb-1 font-semibold">Upload</p>
-                      <p className="text-sm pb-1">86 Kbps + 299,9 Mbps de bônus*</p>
-                      <p className="text-sm">Bonificação mediante adimplência</p>
-                    </div>
-
+                    {plan.details
+                      .filter((detail) => !detail.highlight_top)
+                      .map((detail, detailIndex) => (
+                        <div className="pb-4" key={`more-${detailIndex}`}>
+                          <p className="text-sm pb-1 font-semibold">{detail.title}</p>
+                          {detail.description && (
+                            <p className="text-sm pb-1 opacity-75">{detail.description}</p>
+                          )}
+                          {detail.images[0] && (
+                            <Image
+                              src={detail.images[0]}
+                              alt={detail.title}
+                              width={32}
+                              height={32}
+                              className="rounded-sm" />
+                          )}
+                        </div>
+                      ))}
                   </div>
                 )}
               </div>

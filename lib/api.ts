@@ -1,13 +1,19 @@
-import axios from 'axios';
+import axios from "axios"
 
 export const viaCepApi = axios.create({
-  baseURL: 'https://viacep.com.br/ws',
+  baseURL: "https://viacep.com.br/ws",
   timeout: 10000,
-  headers: { 'Content-Type': 'application/json' }
+  headers: { "Content-Type": "application/json" },
 })
 
 export const api = axios.create({
-  baseURL: 'https://evolution.bigdates.com.br:3620/',
+  baseURL: "https://evolution.bigdates.com.br:3720",
+  timeout: 15000,
+  headers: { "Content-Type": "application/json" },
+})
+
+export const verificationApi = axios.create({
+  baseURL: "https://evolution.bigdates.com.br:3620",
   timeout: 10000,
-  headers: { 'Content-Type': 'application/json' }
+  headers: { "Content-Type": "application/json" },
 })

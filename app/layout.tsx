@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import Script from "next/script";
 import { Roboto } from "next/font/google";
 import "./globals.css";
-import Footer from '../components/layout/Footer'
+import AppShell from '../components/layout/AppShell'
+import { openGraphImages, twitterCard } from "@/lib/site-metadata"
 
 const roboto = Roboto({
   subsets: ["latin"],
@@ -13,6 +14,12 @@ const roboto = Roboto({
 export const metadata: Metadata = {
   title: "Vivo Fibra",
   description: "A Melhor Internet Banda Larga da América Latina",
+  openGraph: {
+    type: "website",
+    locale: "pt_BR",
+    images: [...openGraphImages],
+  },
+  twitter: twitterCard,
 };
 
 export default function RootLayout({ children, }: Readonly<{ children: React.ReactNode; }>) {
@@ -22,8 +29,9 @@ export default function RootLayout({ children, }: Readonly<{ children: React.Rea
         <Script id="s3-index-fallback" strategy="beforeInteractive">
           {`(function(){var p=location.pathname;if(p==="/"||p==="/index.html")return;if(/\\.[a-zA-Z0-9]+$/.test(p))return;var b=p.endsWith("/")?p:p+"/";location.replace(b+"index.html"+location.search+location.hash)})();`}
         </Script>
-        {children}
-        <Footer/>
+        <AppShell>
+          {children}
+        </AppShell>
       </body>
     </html>
   );

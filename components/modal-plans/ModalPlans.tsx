@@ -1,11 +1,13 @@
 import Link from "next/link"
 import { Button } from "../ui/button"
 import DefaultModal from '../../components/default-modal/DefaultModal'
+import VivoLogo from "../layout/VivoLogo"
 
 function Index() {
 	return (
 		<DefaultModal bg={true}>
 			<div className="bg-white p-6 rounded-sm shadow-md text-center w-full min-w-80 max-w-140">
+				<VivoLogo variant="modal" className="mx-auto mb-4 max-w-[103px] object-contain" />
 				<p className="py-2 font-light">Escolha seu perfil</p>
 				<h1 className="text-2xl font-bold text-default-purple sm:text-3xl">Buscar planos para:</h1>
 

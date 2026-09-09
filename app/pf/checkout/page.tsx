@@ -15,7 +15,10 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import SecondStep from '../../../components/checkout-steps/SecondStep'
 import ThirdStep from '../../../components/checkout-steps/ThirdStep'
 import FourthStep from '../../../components/checkout-steps/FourthStep'
-import { validateStep1, validateStep2, validateStep3, validateStep4 } from "@/lib/helpers/CheckoutValidations"
+import { getLastEmailVerification, validateStep1, validateStep2, validateStep3, validateStep4 } from "@/lib/helpers/CheckoutValidations"
+import { getOrderSession, saveOrderSession, toPartnerSessionFields } from "@/lib/order-storage"
+import { resolvePartner } from "@/lib/api/partner-resolver"
+import { applyPartnerHashToUrl } from "@/lib/partner-hash"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { setStepQuery } from "@/lib/helpers/push"
 import { useRouter, useSearchParams } from "next/navigation"
@@ -273,7 +276,19 @@ function Index() {
         cust.plan,
         cust.firstStepData?.mobileLine,
       )
-      return VivoFibraAPI.extractOrderId(res)
+      const orderId = res.id ?? VivoFibraAPI.extractOrderId(res)
+      if (orderId && res.order_token) {
+        const customer = localStorage.getItem('customer')
+        const parsed = customer ? JSON.parse(customer) as Customer : null
+        if (parsed) {
+          localStorage.setItem('customer', JSON.stringify({
+            ...parsed,
+            orderId,
+            orderToken: res.order_token,
+          }))
+        }
+      }
+      return orderId
     } catch (e) {
       console.error('Erro ao registrar pedido (consulta):', e)
       return undefined
@@ -286,7 +301,7 @@ function Index() {
       return
     }
 
-    const orderId = customerData.orderId ?? (await ensureOrderId(customerData))
+    const orderId = customerData.orderId ?? getOrderSession()?.orderId ?? (await ensureOrderId(customerData))
     if (!orderId) {
       form.setError('email', {
         message: 'Não foi possível sincronizar o pedido. Volte e selecione o plano novamente.',
@@ -321,6 +336,7 @@ function Index() {
             mobileLineNumber: firstStepData.mobileLineNumber,
             eSim: firstStepData.eSim,
             ddi: firstStepData.ddi,
+            emailVerification: getLastEmailVerification(),
           }),
         )
         localStorage.setItem('customer', JSON.stringify(dataToSave))
@@ -351,6 +367,16 @@ function Index() {
           lot: data.lot,
         }
         dataToSave = { ...customerData, address: secondStepData as Customer["address"], orderId }
+        try {
+          const partner = await resolvePartner(data.cep!)
+          if (partner?.partner_hash) applyPartnerHashToUrl(partner.partner_hash)
+          const current = getOrderSession()
+          if (current) {
+            saveOrderSession({ ...current, ...toPartnerSessionFields(partner) })
+          }
+        } catch {
+          // Keep the stored partner if the resolver is unavailable.
+        }
         await vivoFibraAPI.updateOrderProgress(
           orderId,
           vivoFibraAPI.buildStep2Payload(secondStepData as Customer["address"]),
@@ -412,6 +438,7 @@ function Index() {
             orderNumber,
           }),
         )
+        await vivoFibraAPI.closeCurrentOrder()
         const orderNumberFromApi = VivoFibraAPI.extractOrderNumber(response)
         const finalCustomer: Customer = {
           ...dataToSave,
@@ -428,7 +455,7 @@ function Index() {
   if (!isLoaded) return <div className="h-[calc(100vh-76px)] flex justify-center items-center"><Loader className="animate-spin" size={48} color="purple" /></div>
 
   return (
-    <div className="container m-auto px-4 my-12">
+    <div className="container m-auto px-4 my-12 overflow-x-hidden">
 
 
       <div className="relative grid gap-4 lg:grid-cols-2">
@@ -444,11 +471,11 @@ function Index() {
                 control={control}
                 render={({ field }) => (
                   <RadioGroup
-                    className="flex items-center justify-center my-2 border rounded-sm"
+                    className="flex flex-wrap items-center justify-center my-2 border rounded-sm sm:flex-nowrap"
                     onValueChange={field.onChange}
                     value={field.value}>
                     {dueDate.map((date, i) => (
-                      <div className="flex items-center justify-center border-x gap-2 grow p-2" key={i}>
+                      <div className="flex items-center justify-center border-x gap-2 grow p-2 min-w-[64px]" key={i}>
                         <RadioGroupItem value={date} id={date} />
                         <Label htmlFor={date} className="text-2xl font-normal">{date}</Label>
                       </div>
@@ -497,7 +524,7 @@ function Index() {
 
                   <div>
                     <Label className="text-1xl font-normal mb-1">Celular</Label>
-                    <div className="flex gap-2">
+                    <div className="flex flex-wrap gap-2 min-w-0">
 
                       {/* Controller do DDI */}
                       <Controller
@@ -515,7 +542,7 @@ function Index() {
                                   field.onChange(val);
                                   setValue('tel', '');
                                 }}>
-                                <SelectTrigger className="w-[110px]">
+                                <SelectTrigger className="w-[110px] shrink-0">
                                   <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -624,7 +651,7 @@ function Index() {
                       'Para essa opção, é necessário que o número esteja cadastrado no mesmo CPF informado nos dados pessoais. Você não precisa cancelar o seu plano atual pois a Vivo fará os processos necessários para a troca do plano.'}</p>
                   )}
 
-                  <div className="col-span-2">
+                  <div className="lg:col-span-2">
                     <div>
                       <p className="font-light">Chip virtual</p>
                       <p className="text-xs opacity-75 font-light mb-4">O <span className="font-bold">eSIM</span> substitui o chip físico e é prático e seguro. Vamos enviar as instruções de ativação por e-mail, é só seguir as etapas</p>

@@ -1,12 +1,17 @@
 import { UseFormClearErrors, UseFormSetError } from "react-hook-form"
 import { CPFValidator } from "./formatters"
 import { VivoFibraAPI } from "../VivoFibraAPI"
+import { verifyEmail, type EmailVerificationResult } from "@/lib/api/verification"
 
 const vivoControleAPI = new VivoFibraAPI()
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-let lastAcknowledgedEmailWarning = ''
 let lastAcknowledgedCpfWarning = ''
+let lastEmailVerification: EmailVerificationResult | null = null
+
+export function getLastEmailVerification() {
+  return lastEmailVerification
+}
 
 export const validateStep1 = async (
   data: CheckoutFormData,
@@ -16,23 +21,19 @@ export const validateStep1 = async (
   let hasError = false
 
   if (!data.email?.trim()) {
-    lastAcknowledgedEmailWarning = ''
+    lastEmailVerification = null
     setError('email', { message: 'Informe um e-mail válido.' })
     hasError = true
   } else if (!EMAIL_REGEX.test(data.email)) {
-    lastAcknowledgedEmailWarning = ''
+    lastEmailVerification = null
     setError('email', { message: 'Informe um e-mail válido.' })
     hasError = true
   } else {
-    const emailStatus = await vivoControleAPI.verifyEmail(data.email)
-    if (emailStatus !== 'VALIDO') {
+    const emailResult = await verifyEmail(data.email)
+    lastEmailVerification = emailResult
+    if (emailResult !== null && !emailResult.isValid) {
       setError('email', { type: 'warning', message: 'Confirme se o e-mail está correto.' })
-      if (lastAcknowledgedEmailWarning !== data.email) {
-        lastAcknowledgedEmailWarning = data.email
-        hasError = true
-      }
     } else {
-      lastAcknowledgedEmailWarning = ''
       clearErrors('email')
     }
   }

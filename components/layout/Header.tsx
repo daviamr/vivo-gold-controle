@@ -1,13 +1,21 @@
 'use client'
 import { Menu } from "lucide-react"
-import { useState } from "react"
-import Image from "next/image"
+import { useEffect, useState } from "react"
 import Link from "next/link"
-import { withBasePath } from "@/lib/basePath"
+import { withPartnerPath } from "@/lib/partner-hash"
 import MenuMobile from '../menu-mobile/MenuMobile'
+import VivoLogo from "./VivoLogo"
 
 function Index() {
   const [isOpen, setIsOpen] = useState(false)
+  const [pfHref, setPfHref] = useState("/pf")
+
+  useEffect(() => {
+    const sync = () => setPfHref(withPartnerPath("/pf"))
+    sync()
+    window.addEventListener("vivo-partner-hash-changed", sync)
+    return () => window.removeEventListener("vivo-partner-hash-changed", sync)
+  }, [])
 
   return (
     <header className="bg-white py-3 shadow-md lg:py-2">
@@ -15,10 +23,10 @@ function Index() {
 
         <div className="flex items-center justify-between">
           <div className="flex gap-2 items-center">
-            <Image src={withBasePath('/logo-vivo.webp')} alt='Logo VivoFibra' width={128} height={48} />
+            <VivoLogo />
 
             <div className="hidden ml-6 items-center gap-6 lg:flex">
-              <Link href={'/pf'}
+              <Link href={pfHref}
                 className={`cursor-pointer duration-300 hover:text-default-purple font-bold text-default-purple`}>
                 Para Você
               </Link>
@@ -30,11 +38,6 @@ function Index() {
             onClick={() => setIsOpen((prev => !prev))}>
             <Menu size={32} />
           </button>
-
-          <div className="hidden lg:flex flex-col items-center">
-            <Image src={withBasePath('/logo-gold.webp')} alt="Logo Gold" width={112} height={60}/>
-            <p className="border border-[#6c4598] px-[5px] rounded-sm text-[#6c4598] font-semibold text-sm">Parceiro autorizado</p>
-          </div>
         </div>
 
         <MenuMobile isOpen={isOpen} />

@@ -6,6 +6,7 @@ import { Label } from "../ui/label";
 import { Checkbox } from "../ui/checkbox";
 import { Controller, UseFormReturn } from "react-hook-form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
+import { withPartnerPath } from "@/lib/partner-hash"
 
 function Index({ form, ddiOptions }: SecondStepProps) {
   const { formState: { errors }, control, setValue } = form
@@ -72,7 +73,7 @@ function Index({ form, ddiOptions }: SecondStepProps) {
               const currentMask = ddiOptions?.find(d => d.value === field.value)?.mask ?? '(99) 9 9999-9999';
 
               return (
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2 min-w-0">
                   <Select
                     key={field.value}
                     value={field.value}
@@ -80,7 +81,7 @@ function Index({ form, ddiOptions }: SecondStepProps) {
                       field.onChange(val);
                       setValue('tel', '');
                     }}>
-                    <SelectTrigger className="w-[110px]">
+                    <SelectTrigger className="w-[110px] shrink-0">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -127,7 +128,7 @@ function Index({ form, ddiOptions }: SecondStepProps) {
             render={({ field }) => {
               const currentMask = ddiOptions?.find((d) => d.value === field.value)?.mask ?? '(99) 9 9999-9999'
               return (
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2 min-w-0">
                   <Select
                     key={field.value}
                     value={field.value}
@@ -135,7 +136,7 @@ function Index({ form, ddiOptions }: SecondStepProps) {
                       field.onChange(val)
                       setValue('secondaryTel', '')
                     }}>
-                    <SelectTrigger className="w-[110px]">
+                    <SelectTrigger className="w-[110px] shrink-0">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -185,7 +186,9 @@ function Index({ form, ddiOptions }: SecondStepProps) {
                   checked={field.value}
                   onCheckedChange={field.onChange} />
               )} />
-            <label htmlFor="termsOfUse" className={`font-normal text-sm ${errors.termsOfUse ? 'text-red-500 underline' : ''}`}>Aceito os <span className="underline">Termos e Condições de Uso</span>.</label>
+            <label htmlFor="termsOfUse" className={`font-normal text-sm ${errors.termsOfUse ? 'text-red-500 underline' : ''}`}>
+              Aceito os <a href={withPartnerPath("/termos-de-uso")} target="_blank" rel="noopener noreferrer" className="underline">Termos e Condições de Uso</a>.
+            </label>
           </div>
 
 

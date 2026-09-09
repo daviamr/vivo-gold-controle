@@ -9,6 +9,7 @@ export interface Customer {
   fourthStepData?: FourthStepData,
   /** ID do pedido retornado na consulta do plano (salvamento progressivo) */
   orderId?: number,
+  orderToken?: string,
   /** Número do pedido após finalização com sucesso */
   orderNumber?: string,
 }
