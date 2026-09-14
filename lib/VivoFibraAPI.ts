@@ -10,6 +10,7 @@ import {
   type UpdateOrderPayload,
 } from "@/lib/api/orders"
 import { resolvePartner } from "@/lib/api/partner-resolver"
+import { getUfFromPhone } from "@/lib/ddd-uf"
 import { verifyEmail, verifyPhone, type EmailVerificationResult } from "@/lib/api/verification"
 import {
   VIVO_CATEGORY,
@@ -17,6 +18,7 @@ import {
   VIVO_COMPANY_NAME,
   VIVO_JOURNEY,
   VIVO_LANDING_PAGE,
+  getVivoClientType,
 } from "@/lib/constants/vivo"
 import {
   getOrderSession,
@@ -248,9 +250,16 @@ export class VivoFibraAPI {
 
     const customer = this.readCustomer()
     const cep = customer?.address?.cep ?? ""
+    const storedPhone = customer?.firstStepData?.tel
+      ? this.buildPhoneWithCountry(customer.firstStepData.ddi, customer.firstStepData.tel)
+      : ""
     let partner = null
     try {
-      if (cep) partner = await resolvePartner(cep)
+      partner = await resolvePartner({
+        cep,
+        uf: storedPhone ? getUfFromPhone(storedPhone) : null,
+        clientType: getVivoClientType(),
+      })
     } catch {
       partner = null
     }
@@ -271,7 +280,7 @@ export class VivoFibraAPI {
       business_partner: partner?.partner_name ?? VIVO_COMPANY_NAME,
       partner_id: partner?.partner_id ?? null,
       category: VIVO_CATEGORY,
-      client_type: "PF",
+      client_type: getVivoClientType(),
       landing_page: VIVO_LANDING_PAGE,
       zip_code: this.onlyNumber(cep),
       address: customer?.address?.street ?? customer?.address?.logradouro ?? "",

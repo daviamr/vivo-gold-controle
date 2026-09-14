@@ -18,8 +18,8 @@ function Index() {
   }, [])
 
   return (
-    <header className="bg-white py-3 shadow-md lg:py-2">
-      <div className="container m-auto px-4">
+    <header className="bg-white py-4">
+      <div className="container max-w-7xl m-auto px-4">
 
         <div className="flex items-center justify-between">
           <div className="flex gap-2 items-center">

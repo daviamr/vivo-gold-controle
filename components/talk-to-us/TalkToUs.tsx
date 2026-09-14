@@ -2,9 +2,9 @@
 
 import { X } from "lucide-react"
 import { useState } from "react"
-import { withMask } from "use-mask-input"
 import { Label } from "../ui/label"
 import { Input } from "../ui/input"
+import { PhoneInput } from "../ui/phone-input/PhoneInput"
 import { Textarea } from "../ui/textarea"
 import { Button } from "../ui/button"
 import { sendTalkToUsMessage } from "@/lib/api/messages"
@@ -69,19 +69,7 @@ export default function TalkToUs({ setIsTalkToUsOpen }: { setIsTalkToUsOpen: (is
               </div>
               <div className="col-span-2">
                 <Label htmlFor="tel" className="text-xs mb-1">Telefone</Label>
-                <Input
-                  id="tel"
-                  type="text"
-                  className="rounded-sm py-5"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  ref={withMask("(99) 9 9999-9999", {
-                    placeholder: "",
-                    showMaskOnHover: false,
-                    showMaskOnFocus: false,
-                  })}
-                  required
-                />
+                <PhoneInput id="tel" value={phone} onChange={setPhone} required />
               </div>
               <div className="col-span-2">
                 <Label htmlFor="email" className="text-xs mb-1">E-mail</Label>

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { usePathname } from "next/navigation"
-import { getOrderSession, ORDER_SESSION_EVENT } from "@/lib/order-storage"
+import { getPartnerSessionFields, ORDER_SESSION_EVENT } from "@/lib/order-storage"
 
 type PartnerSession = {
   partnerId: number | null
@@ -12,12 +12,12 @@ type PartnerSession = {
 }
 
 function readPartnerSession(): PartnerSession {
-  const session = getOrderSession()
+  const stored = getPartnerSessionFields()
   return {
-    partnerId: session?.partnerId ?? null,
-    partnerName: session?.partnerName ?? null,
-    partnerLogoUrl: session?.partnerLogoUrl ?? null,
-    partnerCnpj: session?.partnerCnpj ?? null,
+    partnerId: stored.partnerId,
+    partnerName: stored.partnerName,
+    partnerLogoUrl: stored.partnerLogoUrl,
+    partnerCnpj: stored.partnerCnpj ?? null,
   }
 }
 
@@ -30,10 +30,12 @@ export function usePartner() {
 
     sync()
     window.addEventListener(ORDER_SESSION_EVENT, sync)
+    window.addEventListener("vivo-partner-hash-changed", sync)
     window.addEventListener("storage", sync)
 
     return () => {
       window.removeEventListener(ORDER_SESSION_EVENT, sync)
+      window.removeEventListener("vivo-partner-hash-changed", sync)
       window.removeEventListener("storage", sync)
     }
   }, [pathname])

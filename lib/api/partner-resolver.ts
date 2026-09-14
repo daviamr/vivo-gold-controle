@@ -2,8 +2,10 @@ import { api } from "@/lib/api"
 import {
   VIVO_CATEGORY,
   VIVO_COMPANY_ID,
+  getVivoClientType,
+  type VivoClientType,
 } from "@/lib/constants/vivo"
-import { getPartnerHashFromUrl } from "@/lib/partner-hash"
+import { getPartnerHashFromUrl, isSamePartnerHash } from "@/lib/partner-hash"
 
 export type PartnerData = {
   partner_id: number
@@ -14,38 +16,62 @@ export type PartnerData = {
   email?: string
 }
 
+export type ResolvePartnerInput = {
+  cep?: string | null
+  uf?: string | null
+  partnerHash?: string | null
+  clientType?: VivoClientType
+}
+
 type PartnerResolverResponse = {
   success: boolean
   partner: PartnerData | null
 }
 
-async function fetchPartnerResolver(cep: string, partnerHash?: string | null) {
-  const sanitizedCep = cep.replace(/\D/g, "")
+function normalizeInput(
+  cepOrQuery?: string | null | ResolvePartnerInput,
+): ResolvePartnerInput {
+  if (cepOrQuery == null || typeof cepOrQuery === "string") {
+    return { cep: cepOrQuery }
+  }
+  return cepOrQuery
+}
+
+async function fetchPartnerResolver(input: ResolvePartnerInput) {
+  const partnerHash = input.partnerHash ?? getPartnerHashFromUrl()
+  const clientType = input.clientType ?? getVivoClientType()
   const query = new URLSearchParams({
     company_id: String(VIVO_COMPANY_ID),
-    client_type: "PF",
+    client_type: clientType,
     category: VIVO_CATEGORY,
-    cep: sanitizedCep,
   })
 
-  if (partnerHash) {
-    query.set("partner_hash", partnerHash)
-  }
+  const sanitizedCep = input.cep?.replace(/\D/g, "") ?? ""
+  const uf = input.uf?.trim().toUpperCase() ?? ""
+  if (sanitizedCep) query.set("cep", sanitizedCep)
+  if (uf) query.set("uf", uf)
+  if (partnerHash) query.set("partner_hash", partnerHash)
+
+  if (!sanitizedCep && !uf && !partnerHash) return null
 
   const { data } = await api.get<PartnerResolverResponse>(`/partner-resolver?${query.toString()}`)
   return data.partner
 }
 
-export async function resolvePartner(cep: string) {
-  const partnerHash = getPartnerHashFromUrl()
+export async function resolvePartner(
+  cepOrQuery?: string | null | ResolvePartnerInput,
+) {
+  const input = normalizeInput(cepOrQuery)
+  const partnerHash = input.partnerHash ?? getPartnerHashFromUrl()
+  const partner = await fetchPartnerResolver(input)
 
-  try {
-    return await fetchPartnerResolver(cep, partnerHash)
-  } catch (error) {
-    if (!partnerHash) {
-      throw error
-    }
-
-    return fetchPartnerResolver(cep, null)
+  if (
+    partnerHash &&
+    partner?.partner_hash &&
+    !isSamePartnerHash(partner.partner_hash, partnerHash)
+  ) {
+    return null
   }
+
+  return partner
 }

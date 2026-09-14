@@ -1,16 +1,26 @@
 import {
+  VIVO_CATEGORY,
   VIVO_COMPANY_ID,
   VIVO_COMPANY_NAME,
   VIVO_LANDING_PAGE,
+  getVivoClientType,
 } from "@/lib/constants/vivo"
 import { resolvePartner } from "@/lib/api/partner-resolver"
-import { getOrderSession } from "@/lib/order-storage"
+import { getUfFromPhone } from "@/lib/ddd-uf"
+import {
+  getOrderSession,
+  getPartnerSessionFields,
+  savePartnerData,
+} from "@/lib/order-storage"
+import { applyPartnerHashToUrl } from "@/lib/partner-hash"
+import { toInternationalPhoneDigits } from "@/lib/phone"
 
 export type TalkToUsMessagePayload = {
   company: string
   company_id: number
   business_partner: string
   partner_id?: number | null
+  category: string
   landing_page: string
   name: string
   phone: string
@@ -39,51 +49,52 @@ function getCustomerCep() {
   }
 }
 
-async function resolveTalkToUsPartner() {
+async function resolveTalkToUsPartner(phone: string) {
   const session = getOrderSession()
-
-  if (session?.partnerId != null && session.partnerName) {
-    return {
-      partnerId: session.partnerId,
-      partnerName: session.partnerName,
-    }
-  }
-
+  const stored = getPartnerSessionFields()
   const cep = getCustomerCep()
-  if (!cep) {
-    return {
-      partnerId: session?.partnerId ?? null,
-      partnerName: session?.partnerName ?? "",
-    }
-  }
+  const uf = getUfFromPhone(phone)
 
   try {
-    const partner = await resolvePartner(cep)
-    return {
-      partnerId: partner?.partner_id ?? session?.partnerId ?? null,
-      partnerName: partner?.partner_name ?? session?.partnerName ?? "",
+    const partner = await resolvePartner({
+      cep,
+      uf,
+      clientType: getVivoClientType(),
+    })
+
+    if (partner) {
+      if (partner.partner_hash) applyPartnerHashToUrl(partner.partner_hash)
+      savePartnerData(partner)
+      return {
+        partnerId: partner.partner_id,
+        partnerName: partner.partner_name,
+      }
     }
   } catch {
-    return {
-      partnerId: session?.partnerId ?? null,
-      partnerName: session?.partnerName ?? "",
-    }
+    // Keep the stored partner if the resolver is unavailable.
+  }
+
+  return {
+    partnerId: stored.partnerId ?? session?.partnerId ?? null,
+    partnerName: stored.partnerName ?? session?.partnerName ?? "",
   }
 }
 
 export async function buildTalkToUsPayload(
   data: TalkToUsFormData,
 ): Promise<TalkToUsMessagePayload> {
-  const { partnerId, partnerName } = await resolveTalkToUsPartner()
+  const phone = toInternationalPhoneDigits(data.phone)
+  const { partnerId, partnerName } = await resolveTalkToUsPartner(phone)
 
   return {
     company: VIVO_COMPANY_NAME.toUpperCase(),
     company_id: VIVO_COMPANY_ID,
     business_partner: partnerName.trim() || VIVO_COMPANY_NAME,
     partner_id: partnerId ?? null,
+    category: VIVO_CATEGORY,
     landing_page: VIVO_LANDING_PAGE,
     name: data.name.trim(),
-    phone: data.phone.replace(/\D/g, ""),
+    phone,
     email: data.email.trim(),
     subject: "Contato via site",
     message: data.message.trim(),

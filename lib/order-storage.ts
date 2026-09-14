@@ -2,6 +2,7 @@ import { getPartnerHashFromUrl } from "@/lib/partner-hash"
 import type { PartnerData } from "@/lib/api/partner-resolver"
 
 const ORDER_SESSION_KEY = "vivo-order-session"
+const PARTNER_SESSION_KEY = "vivo-partner-session"
 export const ORDER_SESSION_EVENT = "vivo-order-session-changed"
 
 export type OrderSession = {
@@ -15,9 +16,33 @@ export type OrderSession = {
   partnerCnpj?: string | null
 }
 
+export type PartnerSessionFields = {
+  partnerId: number | null
+  partnerName: string | null
+  partnerLogoUrl: string | null
+  partnerHash?: string | null
+  partnerCnpj?: string | null
+}
+
 function notifyOrderSessionChanged() {
   if (typeof window === "undefined") return
   window.dispatchEvent(new Event(ORDER_SESSION_EVENT))
+}
+
+function persistPartnerFields(fields: PartnerSessionFields) {
+  if (typeof window === "undefined") return
+  localStorage.setItem(PARTNER_SESSION_KEY, JSON.stringify(fields))
+}
+
+function readStoredPartnerFields(): PartnerSessionFields | null {
+  if (typeof window === "undefined") return null
+  try {
+    const raw = localStorage.getItem(PARTNER_SESSION_KEY)
+    if (!raw) return null
+    return JSON.parse(raw) as PartnerSessionFields
+  } catch {
+    return null
+  }
 }
 
 export function toPartnerSessionFields(partner: PartnerData | null) {
@@ -32,6 +57,13 @@ export function toPartnerSessionFields(partner: PartnerData | null) {
 
 export function saveOrderSession(session: OrderSession) {
   localStorage.setItem(ORDER_SESSION_KEY, JSON.stringify(session))
+  persistPartnerFields({
+    partnerId: session.partnerId,
+    partnerName: session.partnerName,
+    partnerLogoUrl: session.partnerLogoUrl,
+    partnerHash: session.partnerHash,
+    partnerCnpj: session.partnerCnpj,
+  })
   notifyOrderSessionChanged()
 }
 
@@ -47,14 +79,33 @@ export function getOrderSession(): OrderSession | null {
   }
 }
 
-export function savePartnerData(partner: PartnerData | null) {
+export function getPartnerSessionFields(): PartnerSessionFields {
   const session = getOrderSession()
-  if (!session) return
+  const stored = readStoredPartnerFields()
 
-  saveOrderSession({
-    ...session,
-    ...toPartnerSessionFields(partner),
-  })
+  return {
+    partnerId: session?.partnerId ?? stored?.partnerId ?? null,
+    partnerName: session?.partnerName ?? stored?.partnerName ?? null,
+    partnerLogoUrl: session?.partnerLogoUrl ?? stored?.partnerLogoUrl ?? null,
+    partnerHash: session?.partnerHash ?? stored?.partnerHash ?? getPartnerHashFromUrl(),
+    partnerCnpj: session?.partnerCnpj ?? stored?.partnerCnpj ?? null,
+  }
+}
+
+export function savePartnerData(partner: PartnerData | null) {
+  const fields = toPartnerSessionFields(partner)
+  persistPartnerFields(fields)
+
+  const session = getOrderSession()
+  if (session) {
+    saveOrderSession({
+      ...session,
+      ...fields,
+    })
+    return
+  }
+
+  notifyOrderSessionChanged()
 }
 
 export function clearOrderSession() {

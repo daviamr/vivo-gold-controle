@@ -16,8 +16,9 @@ import SecondStep from '../../../components/checkout-steps/SecondStep'
 import ThirdStep from '../../../components/checkout-steps/ThirdStep'
 import FourthStep from '../../../components/checkout-steps/FourthStep'
 import { getLastEmailVerification, validateStep1, validateStep2, validateStep3, validateStep4 } from "@/lib/helpers/CheckoutValidations"
-import { getOrderSession, saveOrderSession, toPartnerSessionFields } from "@/lib/order-storage"
+import { getOrderSession, savePartnerData } from "@/lib/order-storage"
 import { resolvePartner } from "@/lib/api/partner-resolver"
+import { getUfFromPhone } from "@/lib/ddd-uf"
 import { applyPartnerHashToUrl } from "@/lib/partner-hash"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { setStepQuery } from "@/lib/helpers/push"
@@ -326,18 +327,40 @@ function Index() {
           ddi: data.ddi
         }
         dataToSave = { ...customerData, firstStepData, orderId }
+        const phone = vivoFibraAPI.buildPhoneWithCountry(firstStepData.ddi, firstStepData.tel)
+        let partner = null
+        try {
+          partner = await resolvePartner({
+            uf: getUfFromPhone(phone),
+            cep: customerData.address?.cep,
+          })
+          if (partner) {
+            if (partner.partner_hash) applyPartnerHashToUrl(partner.partner_hash)
+            savePartnerData(partner)
+          }
+        } catch {
+          partner = null
+        }
         await vivoFibraAPI.updateOrderProgress(
           orderId,
-          vivoFibraAPI.buildStep1Payload({
-            fullName: firstStepData.fullName,
-            tel: firstStepData.tel,
-            email: firstStepData.email,
-            mobileLine: firstStepData.mobileLine,
-            mobileLineNumber: firstStepData.mobileLineNumber,
-            eSim: firstStepData.eSim,
-            ddi: firstStepData.ddi,
-            emailVerification: getLastEmailVerification(),
-          }),
+          {
+            ...vivoFibraAPI.buildStep1Payload({
+              fullName: firstStepData.fullName,
+              tel: firstStepData.tel,
+              email: firstStepData.email,
+              mobileLine: firstStepData.mobileLine,
+              mobileLineNumber: firstStepData.mobileLineNumber,
+              eSim: firstStepData.eSim,
+              ddi: firstStepData.ddi,
+              emailVerification: getLastEmailVerification(),
+            }),
+            ...(partner
+              ? {
+                  partner_id: partner.partner_id,
+                  business_partner: partner.partner_name,
+                }
+              : {}),
+          },
         )
         localStorage.setItem('customer', JSON.stringify(dataToSave))
         const nextStep = step + 1
@@ -368,11 +391,13 @@ function Index() {
         }
         dataToSave = { ...customerData, address: secondStepData as Customer["address"], orderId }
         try {
-          const partner = await resolvePartner(data.cep!)
-          if (partner?.partner_hash) applyPartnerHashToUrl(partner.partner_hash)
-          const current = getOrderSession()
-          if (current) {
-            saveOrderSession({ ...current, ...toPartnerSessionFields(partner) })
+          const partner = await resolvePartner({
+            cep: data.cep!,
+            uf: data.uf,
+          })
+          if (partner) {
+            if (partner.partner_hash) applyPartnerHashToUrl(partner.partner_hash)
+            savePartnerData(partner)
           }
         } catch {
           // Keep the stored partner if the resolver is unavailable.

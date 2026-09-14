@@ -15,7 +15,7 @@ import DefaultModal from '../default-modal/DefaultModal'
 import VivoLogo from "../layout/VivoLogo"
 import { resolvePartner } from "@/lib/api/partner-resolver"
 import { applyPartnerHashToUrl } from "@/lib/partner-hash"
-import { getOrderSession, saveOrderSession, toPartnerSessionFields } from "@/lib/order-storage"
+import { savePartnerData } from "@/lib/order-storage"
 
 export const cepSchema = z.object({
   cep: z
@@ -74,10 +74,7 @@ function Index() {
       try {
         const partner = await resolvePartner(data.cep)
         if (partner?.partner_hash) applyPartnerHashToUrl(partner.partner_hash)
-        const current = getOrderSession()
-        if (current) {
-          saveOrderSession({ ...current, ...toPartnerSessionFields(partner) })
-        }
+        savePartnerData(partner)
       } catch {
         // Keep going if the resolver is unavailable.
       }

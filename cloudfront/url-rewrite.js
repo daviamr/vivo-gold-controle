@@ -2,16 +2,13 @@
  * CloudFront Function (Viewer Request)
  *
  * O origin S3 REST não mapeia `/pf/` para `/pf/index.html`.
- * Também remove o hash do parceiro (`/{hash}/pf/` → `/pf/index.html`)
- * para o Next.js static export continuar servindo as rotas reais.
+ * Remove o hash do parceiro mesmo quando a URI já termina em `index.html`
+ * (`/{hash}` e `/{hash}/index.html` → `/index.html`, `/{hash}/pf/` → `/pf/index.html`).
+ * Assets reais (js, css, imagens) passam direto.
  */
 function handler(event) {
   var request = event.request
   var uri = request.uri
-
-  if (uri.includes(".")) {
-    return request
-  }
 
   var known = {
     pf: true,
@@ -24,20 +21,34 @@ function handler(event) {
   }
 
   var parts = uri.split("/").filter(Boolean)
-  if (parts.length && !known[parts[0]]) {
-    parts = parts.slice(1)
-    uri = parts.length ? "/" + parts.join("/") : "/"
+  var last = parts.length ? parts[parts.length - 1] : ""
+  var dot = last.lastIndexOf(".")
+  var ext = dot !== -1 ? last.substring(dot + 1).toLowerCase() : ""
+  var isHtml = ext === "html"
+  var isAsset = Boolean(ext) && !isHtml
+
+  if (isAsset) {
+    return request
   }
 
-  if (uri !== "/" && !uri.endsWith("/")) {
+  if (parts.length && !known[parts[0]] && parts[0] !== "index.html" && parts[0] !== "_next") {
+    parts = parts.slice(1)
+  }
+
+  if (!parts.length || (parts.length === 1 && parts[0] === "index.html")) {
+    request.uri = "/index.html"
+    return request
+  }
+
+  if (parts[parts.length - 1] === "index.html") {
+    request.uri = "/" + parts.join("/")
+    return request
+  }
+
+  uri = "/" + parts.join("/")
+  if (!uri.endsWith("/")) {
     uri += "/"
   }
-
-  if (uri.endsWith("/")) {
-    request.uri = uri + "index.html"
-  } else {
-    request.uri = uri + "/index.html"
-  }
-
+  request.uri = uri + "index.html"
   return request
 }

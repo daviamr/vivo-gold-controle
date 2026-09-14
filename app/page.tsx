@@ -1,7 +1,7 @@
 import type { Metadata } from "next"
 import Header from "@/components/layout/Header"
 import DefaultLayout from "@/components/layout/DefaultLayout"
-import PfPage from "./pf/page"
+import PfHome from "@/components/pf/PfHome"
 import { openGraphImages, twitterCard } from "@/lib/site-metadata"
 
 export const metadata: Metadata = {
@@ -21,7 +21,7 @@ export default function Home() {
     <>
       <Header />
       <DefaultLayout>
-        <PfPage />
+        <PfHome />
       </DefaultLayout>
     </>
   )

@@ -28,7 +28,7 @@ export default function Footer({ setIsTalkToUsOpen }: { setIsTalkToUsOpen: (isOp
       <div className="container max-w-7xl mx-auto px-4 py-1">
         <div className="flex flex-wrap justify-center items-center gap-2 sm:gap-32">
           <div className="flex items-center gap-8">
-            <VivoLogo />
+            <VivoLogo className="my-4 w-[100px] h-[39px] object-contain" />
 
             {partnerLogoUrl && (
               <img

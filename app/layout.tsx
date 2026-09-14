@@ -26,9 +26,11 @@ export default function RootLayout({ children, }: Readonly<{ children: React.Rea
   return (
     <html lang="pt-br">
       <body className={`relative ${roboto.variable} font-sans antialiased`}>
-        <Script id="s3-index-fallback" strategy="beforeInteractive">
-          {`(function(){var p=location.pathname;if(p==="/"||p==="/index.html")return;if(/\\.[a-zA-Z0-9]+$/.test(p))return;var b=p.endsWith("/")?p:p+"/";location.replace(b+"index.html"+location.search+location.hash)})();`}
-        </Script>
+        {process.env.NODE_ENV === "production" && (
+          <Script id="s3-index-fallback" strategy="beforeInteractive">
+            {`(function(){var p=location.pathname;if(p==="/"||p==="/index.html")return;if(/\\.[a-zA-Z0-9]+$/.test(p))return;var known={pf:1,pj:1,"politica-de-privacidade":1,"termos-de-uso":1,editar:1,"editar-concluido":1,retomar:1};var parts=p.split("/").filter(Boolean);if(!parts.length||!known[parts[0]])return;var b=p.endsWith("/")?p:p+"/";location.replace(b+"index.html"+location.search+location.hash)})();`}
+          </Script>
+        )}
         <AppShell>
           {children}
         </AppShell>
