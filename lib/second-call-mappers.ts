@@ -186,7 +186,7 @@ export function buildSecondCallPayload(form: EditFormData): SecondCallUpdateData
     phone: buildPhone(form.ddi, form.tel) || undefined,
     email: form.email || undefined,
     line_action: form.mobileLine || undefined,
-    wants_esim: form.eSim ? 1 : 0,
+    wants_esim: Boolean(form.eSim),
     zip_code: form.cep || undefined,
     address: form.street || undefined,
     address_number: form.homeNumber || undefined,

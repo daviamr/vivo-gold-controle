@@ -549,7 +549,7 @@ function Index() {
 
                   <div>
                     <Label className="text-1xl font-normal mb-1">Celular</Label>
-                    <div className="flex flex-wrap gap-2 min-w-0">
+                    <div className="flex items-center gap-2 min-w-0">
 
                       {/* Controller do DDI */}
                       <Controller
@@ -586,6 +586,7 @@ function Index() {
                                 render={({ field: telField }) => (
                                   <Input
                                     type="text"
+                                    className="min-w-0 flex-1"
                                     value={telField.value ?? ''}
                                     onChange={(e) => telField.onChange(e.target.value)}
                                     onBlur={telField.onBlur}

@@ -73,7 +73,7 @@ function Index({ form, ddiOptions }: SecondStepProps) {
               const currentMask = ddiOptions?.find(d => d.value === field.value)?.mask ?? '(99) 9 9999-9999';
 
               return (
-                <div className="flex flex-wrap items-center gap-2 min-w-0">
+                <div className="flex items-center gap-2 min-w-0">
                   <Select
                     key={field.value}
                     value={field.value}
@@ -100,6 +100,7 @@ function Index({ form, ddiOptions }: SecondStepProps) {
                     render={({ field: telField }) => (
                       <Input
                         type="text"
+                        className="min-w-0 flex-1"
                         value={telField.value ?? ''}
                         onChange={(e) => telField.onChange(e.target.value)}
                         onBlur={telField.onBlur}
@@ -128,7 +129,7 @@ function Index({ form, ddiOptions }: SecondStepProps) {
             render={({ field }) => {
               const currentMask = ddiOptions?.find((d) => d.value === field.value)?.mask ?? '(99) 9 9999-9999'
               return (
-                <div className="flex flex-wrap items-center gap-2 min-w-0">
+                <div className="flex items-center gap-2 min-w-0">
                   <Select
                     key={field.value}
                     value={field.value}
@@ -154,6 +155,7 @@ function Index({ form, ddiOptions }: SecondStepProps) {
                       <Input
                         id="secondaryTel"
                         type="text"
+                        className="min-w-0 flex-1"
                         value={telField.value ?? ''}
                         onChange={(e) => telField.onChange(e.target.value)}
                         onBlur={telField.onBlur}

@@ -162,7 +162,7 @@ export class VivoFibraAPI {
       ...(args.mobileLineNumber
         ? { line_number_informed: this.onlyNumber(args.mobileLineNumber) }
         : {}),
-      wants_esim: args.eSim ? 1 : 0,
+      wants_esim: Boolean(args.eSim),
     }
   }
 

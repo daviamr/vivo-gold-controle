@@ -19,7 +19,7 @@ export default function PhoneField({ id, ddi, value, onDdiChange, onValueChange,
 
   return (
     <div>
-      <div className="flex flex-wrap gap-2 min-w-0">
+      <div className="flex items-center gap-2 min-w-0">
         <Select
           key={ddi}
           value={ddi}
@@ -41,6 +41,7 @@ export default function PhoneField({ id, ddi, value, onDdiChange, onValueChange,
         <Input
           id={id}
           type="text"
+          className="min-w-0 flex-1"
           value={value}
           onChange={(e) => onValueChange(e.target.value)}
           ref={withMask(mask, {

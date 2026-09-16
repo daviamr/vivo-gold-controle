@@ -105,7 +105,7 @@ export type UpdateOrderPayload = Partial<{
   is_order: boolean
   line_action: string
   line_number_informed: string
-  wants_esim: boolean | number
+  wants_esim: boolean
 }>
 
 export type CreateOrderResponse = {
@@ -140,7 +140,7 @@ export type SecondCallUpdateData = {
   accept_offers?: boolean
   line_action?: string
   line_number_informed?: string
-  wants_esim?: number
+  wants_esim?: boolean
 }
 
 export type SecondCallResponse = {

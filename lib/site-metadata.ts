@@ -1,4 +1,4 @@
-const OG_IMAGE_PATH = "/top-image-pf.webp"
+const OG_IMAGE_PATH = "/og-image.jpeg"
 
 export const openGraphImages = [
   {
