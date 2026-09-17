@@ -1,4 +1,4 @@
-const OG_IMAGE_PATH = "/og-image.jpeg"
+const OG_IMAGE_PATH = "https://controle.vivo.ad/og-image.jpeg"
 
 export const openGraphImages = [
   {
