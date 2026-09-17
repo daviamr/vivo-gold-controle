@@ -1,4 +1,5 @@
-import { getPartnerHashFromUrl } from "@/lib/partner-hash"
+import { touchFlowTimestamp } from "@/lib/storage-expiry"
+import { getPartnerHashFromUrl, isSamePartnerHash } from "@/lib/partner-hash"
 import type { PartnerData } from "@/lib/api/partner-resolver"
 
 const ORDER_SESSION_KEY = "vivo-order-session"
@@ -64,6 +65,7 @@ export function saveOrderSession(session: OrderSession) {
     partnerHash: session.partnerHash,
     partnerCnpj: session.partnerCnpj,
   })
+  touchFlowTimestamp()
   notifyOrderSessionChanged()
 }
 
@@ -93,10 +95,47 @@ export function getPartnerSessionFields(): PartnerSessionFields {
 }
 
 export function savePartnerData(partner: PartnerData | null) {
-  const fields = toPartnerSessionFields(partner)
-  persistPartnerFields(fields)
+  const session = getOrderSession()
+  if (!session) return
+
+  saveOrderSession({
+    ...session,
+    ...toPartnerSessionFields(partner),
+  })
+}
+
+export function persistIncomingPartnerHash(partnerHash: string) {
+  if (typeof window === "undefined" || !partnerHash) return
 
   const session = getOrderSession()
+  const stored = readStoredPartnerFields()
+  const currentHash = session?.partnerHash ?? stored?.partnerHash
+
+  if (isSamePartnerHash(currentHash, partnerHash) && (session?.partnerHash || stored?.partnerHash)) {
+    touchFlowTimestamp()
+    return
+  }
+
+  const hashChanged = currentHash != null && !isSamePartnerHash(currentHash, partnerHash)
+  const fields: PartnerSessionFields = hashChanged
+    ? {
+        partnerId: null,
+        partnerName: null,
+        partnerLogoUrl: null,
+        partnerHash,
+        partnerCnpj: null,
+      }
+    : {
+        partnerId: session?.partnerId ?? stored?.partnerId ?? null,
+        partnerName: session?.partnerName ?? stored?.partnerName ?? null,
+        partnerLogoUrl: session?.partnerLogoUrl ?? stored?.partnerLogoUrl ?? null,
+        partnerHash,
+        partnerCnpj: session?.partnerCnpj ?? stored?.partnerCnpj ?? null,
+      }
+
+  persistPartnerFields(fields)
+  touchFlowTimestamp()
+
   if (session) {
     saveOrderSession({
       ...session,
@@ -111,5 +150,11 @@ export function savePartnerData(partner: PartnerData | null) {
 export function clearOrderSession() {
   if (typeof window === "undefined") return
   localStorage.removeItem(ORDER_SESSION_KEY)
+  notifyOrderSessionChanged()
+}
+
+export function clearPartnerSession() {
+  if (typeof window === "undefined") return
+  localStorage.removeItem(PARTNER_SESSION_KEY)
   notifyOrderSessionChanged()
 }

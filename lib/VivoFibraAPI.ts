@@ -9,8 +9,6 @@ import {
   type OrderAddressComplement,
   type UpdateOrderPayload,
 } from "@/lib/api/orders"
-import { resolvePartner } from "@/lib/api/partner-resolver"
-import { getUfFromPhone } from "@/lib/ddd-uf"
 import { verifyEmail, verifyPhone, type EmailVerificationResult } from "@/lib/api/verification"
 import {
   VIVO_CATEGORY,
@@ -22,10 +20,10 @@ import {
 } from "@/lib/constants/vivo"
 import {
   getOrderSession,
+  getPartnerSessionFields,
   saveOrderSession,
-  toPartnerSessionFields,
 } from "@/lib/order-storage"
-import { applyPartnerHashToUrl } from "@/lib/partner-hash"
+import { getResolvedPartnerHash } from "@/lib/partner-hash"
 
 type PlanExtra = {
   id: string
@@ -250,23 +248,8 @@ export class VivoFibraAPI {
 
     const customer = this.readCustomer()
     const cep = customer?.address?.cep ?? ""
-    const storedPhone = customer?.firstStepData?.tel
-      ? this.buildPhoneWithCountry(customer.firstStepData.ddi, customer.firstStepData.tel)
-      : ""
-    let partner = null
-    try {
-      partner = await resolvePartner({
-        cep,
-        uf: storedPhone ? getUfFromPhone(storedPhone) : null,
-        clientType: getVivoClientType(),
-      })
-    } catch {
-      partner = null
-    }
-
-    if (partner?.partner_hash) {
-      applyPartnerHashToUrl(partner.partner_hash)
-    }
+    const stored = getPartnerSessionFields()
+    const partnerHash = stored.partnerHash ?? getResolvedPartnerHash()
 
     const [clientIp, fingerprint] = await Promise.all([
       this.fetchClientIp(),
@@ -277,8 +260,8 @@ export class VivoFibraAPI {
       status: "ABERTO",
       company: VIVO_COMPANY_NAME,
       company_id: VIVO_COMPANY_ID,
-      business_partner: partner?.partner_name ?? VIVO_COMPANY_NAME,
-      partner_id: partner?.partner_id ?? null,
+      business_partner: stored.partnerName ?? VIVO_COMPANY_NAME,
+      partner_id: stored.partnerId ?? null,
       category: VIVO_CATEGORY,
       client_type: getVivoClientType(),
       landing_page: VIVO_LANDING_PAGE,
@@ -292,7 +275,7 @@ export class VivoFibraAPI {
       client_ip: clientIp,
       fingerprint,
       url: this.buildMarketingUrl(),
-      lp_url: this.buildLpUrl(partner?.partner_hash),
+      lp_url: this.buildLpUrl(partnerHash ?? undefined),
       terms_accepted: false,
       accept_offers: false,
       is_consultation: true,
@@ -310,7 +293,11 @@ export class VivoFibraAPI {
       orderId: response.order.id,
       orderToken: response.order_token,
       expiresAt: response.expires_at,
-      ...toPartnerSessionFields(partner),
+      partnerId: stored.partnerId,
+      partnerName: stored.partnerName,
+      partnerLogoUrl: stored.partnerLogoUrl,
+      partnerHash,
+      partnerCnpj: stored.partnerCnpj,
     }
     saveOrderSession(session)
     return session

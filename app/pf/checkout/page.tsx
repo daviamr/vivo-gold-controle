@@ -16,10 +16,10 @@ import SecondStep from '../../../components/checkout-steps/SecondStep'
 import ThirdStep from '../../../components/checkout-steps/ThirdStep'
 import FourthStep from '../../../components/checkout-steps/FourthStep'
 import { getLastEmailVerification, validateStep1, validateStep2, validateStep3, validateStep4 } from "@/lib/helpers/CheckoutValidations"
-import { getOrderSession, savePartnerData } from "@/lib/order-storage"
+import { getOrderSession, getPartnerSessionFields, savePartnerData } from "@/lib/order-storage"
 import { resolvePartner } from "@/lib/api/partner-resolver"
 import { getUfFromPhone } from "@/lib/ddd-uf"
-import { applyPartnerHashToUrl } from "@/lib/partner-hash"
+import { applyPartnerHashToUrl, pushWithPartnerPath } from "@/lib/partner-hash"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { setStepQuery } from "@/lib/helpers/push"
 import { useRouter, useSearchParams } from "next/navigation"
@@ -328,19 +328,28 @@ function Index() {
         }
         dataToSave = { ...customerData, firstStepData, orderId }
         const phone = vivoFibraAPI.buildPhoneWithCountry(firstStepData.ddi, firstStepData.tel)
-        let partner = null
-        try {
-          partner = await resolvePartner({
-            uf: getUfFromPhone(phone),
-            cep: customerData.address?.cep,
-          })
-          if (partner) {
-            if (partner.partner_hash) applyPartnerHashToUrl(partner.partner_hash)
-            savePartnerData(partner)
+        const storedPartner = getPartnerSessionFields()
+        let partnerId = storedPartner.partnerId
+        let partnerName = storedPartner.partnerName
+
+        if (partnerId == null) {
+          try {
+            const partner = await resolvePartner({
+              uf: getUfFromPhone(phone),
+              cep: customerData.address?.cep,
+            })
+            if (partner) {
+              if (partner.partner_hash) applyPartnerHashToUrl(partner.partner_hash)
+              savePartnerData(partner)
+              partnerId = partner.partner_id
+              partnerName = partner.partner_name
+            }
+          } catch {
+            partnerId = null
+            partnerName = null
           }
-        } catch {
-          partner = null
         }
+
         await vivoFibraAPI.updateOrderProgress(
           orderId,
           {
@@ -354,10 +363,10 @@ function Index() {
               ddi: firstStepData.ddi,
               emailVerification: getLastEmailVerification(),
             }),
-            ...(partner
+            ...(partnerId != null
               ? {
-                  partner_id: partner.partner_id,
-                  business_partner: partner.partner_name,
+                  partner_id: partnerId,
+                  business_partner: partnerName ?? undefined,
                 }
               : {}),
           },
@@ -390,18 +399,6 @@ function Index() {
           lot: data.lot,
         }
         dataToSave = { ...customerData, address: secondStepData as Customer["address"], orderId }
-        try {
-          const partner = await resolvePartner({
-            cep: data.cep!,
-            uf: data.uf,
-          })
-          if (partner) {
-            if (partner.partner_hash) applyPartnerHashToUrl(partner.partner_hash)
-            savePartnerData(partner)
-          }
-        } catch {
-          // Keep the stored partner if the resolver is unavailable.
-        }
         await vivoFibraAPI.updateOrderProgress(
           orderId,
           vivoFibraAPI.buildStep2Payload(secondStepData as Customer["address"]),
@@ -470,7 +467,7 @@ function Index() {
           orderNumber: orderNumberFromApi ?? orderNumber,
         }
         localStorage.setItem('customer', JSON.stringify(finalCustomer))
-        return router.push(`/pf/available`)
+        return pushWithPartnerPath(router, "/pf/available")
       }
     } catch (error: unknown) {
       console.error('Erro ao salvar etapa no servidor:', error)

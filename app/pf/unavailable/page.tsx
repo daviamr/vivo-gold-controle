@@ -1,6 +1,9 @@
+import { ClearPartnerOnComplete } from "@/components/pf/ClearPartnerOnComplete"
+
 function Index() {
   return (
     <div className="container m-auto px-4 h-[calc(100vh-321px)]">
+      <ClearPartnerOnComplete />
 
       <div className="mt-12 max-w-130 m-auto bg-white p-8 shadow-xs">
 

@@ -13,9 +13,6 @@ import { ViaCEP, ViaCepResponse } from "@/lib/ViaCEP"
 import { cleanNumbers } from "@/lib/helpers/formatters"
 import DefaultModal from '../default-modal/DefaultModal'
 import VivoLogo from "../layout/VivoLogo"
-import { resolvePartner } from "@/lib/api/partner-resolver"
-import { applyPartnerHashToUrl } from "@/lib/partner-hash"
-import { savePartnerData } from "@/lib/order-storage"
 
 export const cepSchema = z.object({
   cep: z
@@ -71,13 +68,6 @@ function Index() {
 
     try {
       localStorage.setItem('customer', JSON.stringify({ address: { ...data, ...CEPData } }))
-      try {
-        const partner = await resolvePartner(data.cep)
-        if (partner?.partner_hash) applyPartnerHashToUrl(partner.partner_hash)
-        savePartnerData(partner)
-      } catch {
-        // Keep going if the resolver is unavailable.
-      }
     } catch (error: any) {
       console.log('error on send', error)
     } finally {

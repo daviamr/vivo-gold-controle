@@ -4,6 +4,7 @@ import { Customer } from "@/interface/Customer"
 import { addCurrentYear, formatToBRL } from "@/lib/helpers/formatters"
 import { CircleCheck, Info, MessageSquareMore, TriangleAlert } from "lucide-react"
 import { useEffect, useState } from "react"
+import { ClearPartnerOnComplete } from "@/components/pf/ClearPartnerOnComplete"
 
 function Index() {
   const [customer, setCustomer] = useState<Customer | null>(null)
@@ -35,6 +36,7 @@ function Index() {
 
   return (
     <div className="container m-auto px-4">
+      <ClearPartnerOnComplete />
 
       <div className="grid gap-4 lg:grid-cols-2">
 

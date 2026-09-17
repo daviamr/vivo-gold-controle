@@ -12,6 +12,7 @@ import EditFirstSection from "./EditFirstSection"
 import EditSecondSection from "./EditSecondSection"
 import EditThirdSection from "./EditThirdSection"
 import EditFourthSection from "./EditFourthSection"
+import { pushWithPartnerPath } from "@/lib/partner-hash"
 
 const MOBILE_LINE_LABELS: Record<string, string> = {
   new_number: "Adquirir um novo número Vivo",
@@ -67,7 +68,7 @@ export default function EditPage() {
     try {
       await updateSecondCall(token, buildSecondCallPayload(form))
       setSubmitSuccess(true)
-      router.push("/editar-concluido")
+      pushWithPartnerPath(router, "/editar-concluido")
     } catch {
       setErrors({ fullName: "Não foi possível salvar os dados. Tente novamente." })
     } finally {

@@ -1,16 +1,15 @@
 'use client'
 
 import { Copyright } from "lucide-react"
-import { useRouter } from "next/navigation"
 import { formatCnpj } from "@/lib/cnpj"
 import { usePartner } from "@/hooks/use-partner-id"
-import { withPartnerPath } from "@/lib/partner-hash"
+import { pushWithPartnerPath } from "@/lib/partner-hash"
+import { useRouter } from "next/navigation"
 import VivoLogo from "./VivoLogo"
 
 export default function Footer({ setIsTalkToUsOpen }: { setIsTalkToUsOpen: (isOpen: boolean) => void }) {
   const router = useRouter()
   const { partnerName, partnerLogoUrl, partnerCnpj } = usePartner()
-  const privacyPath = withPartnerPath("/politica-de-privacidade")
   const formattedCnpj = partnerCnpj ? formatCnpj(partnerCnpj) : null
 
   return (
@@ -19,7 +18,7 @@ export default function Footer({ setIsTalkToUsOpen }: { setIsTalkToUsOpen: (isOp
         <div className="container max-w-7xl mx-auto px-4">
           <nav className="text-center md:text-left flex flex-wrap gap-2 items-center justify-center sm:gap-8 text-white">
             <a href="#" className="flex items-center gap-2 min-w-80 md:min-w-auto"><Copyright /> 2026 - Todos os direitos reservados</a>
-            <p className="min-w-80 md:min-w-auto cursor-pointer" onClick={() => router.push(privacyPath)}>Política de Privacidade</p>
+            <p className="min-w-80 md:min-w-auto cursor-pointer" onClick={() => pushWithPartnerPath(router, "/politica-de-privacidade")}>Política de Privacidade</p>
             <p className="min-w-80 md:min-w-auto cursor-pointer" onClick={() => setIsTalkToUsOpen(true)}>Fale Conosco</p>
           </nav>
         </div>

@@ -9,6 +9,7 @@ import { Button } from "../ui/button"
 import { VivoFibraAPI } from "@/lib/VivoFibraAPI"
 import type { IPlan } from "@/interface/Plan"
 import { findHeroPlan, HERO_FALLBACK } from "@/lib/hero-plan"
+import { pushWithPartnerPath } from "@/lib/partner-hash"
 
 function Index() {
   const router = useRouter()
@@ -60,7 +61,7 @@ function Index() {
       setIsSubmitting(false)
     }
 
-    router.push("/pf/checkout?step=1")
+    pushWithPartnerPath(router, "/pf/checkout?step=1")
   }
 
   return (

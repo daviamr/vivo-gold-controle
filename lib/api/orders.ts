@@ -106,6 +106,7 @@ export type UpdateOrderPayload = Partial<{
   line_action: string
   line_number_informed: string
   wants_esim: boolean
+  support: "whatsapp" | "ligacao"
 }>
 
 export type CreateOrderResponse = {

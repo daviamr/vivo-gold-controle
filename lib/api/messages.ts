@@ -52,6 +52,13 @@ function getCustomerCep() {
 async function resolveTalkToUsPartner(phone: string) {
   const session = getOrderSession()
   const stored = getPartnerSessionFields()
+  if (stored.partnerId != null) {
+    return {
+      partnerId: stored.partnerId,
+      partnerName: stored.partnerName ?? session?.partnerName ?? "",
+    }
+  }
+
   const cep = getCustomerCep()
   const uf = getUfFromPhone(phone)
 

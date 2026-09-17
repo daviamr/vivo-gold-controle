@@ -12,6 +12,7 @@ import { IPlan } from "@/interface/Plan"
 import z from "zod"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
+import { pushWithPartnerPath } from "@/lib/partner-hash"
 
 export const planSchema = z.object({
   checked: z.boolean().optional()
@@ -66,7 +67,7 @@ function Index() {
     } finally {
       setCheckoutPlanId(null)
     }
-    router.push('/pf/checkout?step=1')
+    pushWithPartnerPath(router, "/pf/checkout?step=1")
   }
 
   const vivoControlePlans = async () => {
