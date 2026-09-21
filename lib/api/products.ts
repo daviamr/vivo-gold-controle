@@ -155,6 +155,7 @@ export function mapProductToPlan(product: Product): IPlan {
 export async function fetchProducts() {
   const { data } = await api.get<ProductsResponse | Product[]>("/telecom/vivo/products", {
     params: {
+      company_id: VIVO_COMPANY_ID,
       category: VIVO_CATEGORY,
       client_type: "PF",
       page: 1,
