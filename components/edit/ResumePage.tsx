@@ -9,6 +9,7 @@ import {
   markKeepCustomerAfterResume,
 } from "@/lib/clear-checkout-flow"
 import { hydrateCustomer } from "@/lib/second-call-mappers"
+import { adoptConsultantHashFromOrder, consultantHashFromPartial, getPartnerHashFromUrl } from "@/lib/partner-hash"
 
 export default function ResumePage() {
   const searchParams = useSearchParams()
@@ -22,6 +23,10 @@ export default function ResumePage() {
     getOrderByToken(token)
       .then((data) => {
         clearCheckoutFlow()
+        adoptConsultantHashFromOrder(
+          consultantHashFromPartial(data.partial_data),
+          getPartnerHashFromUrl(),
+        )
 
         const customer = hydrateCustomer(data.partial_data, data.order_id)
         localStorage.setItem(CUSTOMER_STORAGE_KEY, JSON.stringify(customer))

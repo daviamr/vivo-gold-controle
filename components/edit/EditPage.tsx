@@ -12,7 +12,7 @@ import EditFirstSection from "./EditFirstSection"
 import EditSecondSection from "./EditSecondSection"
 import EditThirdSection from "./EditThirdSection"
 import EditFourthSection from "./EditFourthSection"
-import { pushWithPartnerPath } from "@/lib/partner-hash"
+import { adoptConsultantHashFromOrder, consultantHashFromPartial, getPartnerHashFromUrl, pushWithPartnerPath } from "@/lib/partner-hash"
 
 const MOBILE_LINE_LABELS: Record<string, string> = {
   new_number: "Adquirir um novo número Vivo",
@@ -40,6 +40,7 @@ export default function EditPage() {
   const [errors, setErrors] = useState<Partial<Record<keyof EditFormData, string>>>({})
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitSuccess, setSubmitSuccess] = useState(false)
+  const [partnerId, setPartnerId] = useState<number | null>(null)
 
   useEffect(() => {
     if (!token) return
@@ -47,6 +48,9 @@ export default function EditPage() {
     getOrderByToken(token)
       .then((data) => {
         const order = data.partial_data
+        const rawPartnerId = order.partner_id
+        setPartnerId(typeof rawPartnerId === "number" ? rawPartnerId : null)
+        adoptConsultantHashFromOrder(consultantHashFromPartial(order), getPartnerHashFromUrl())
         setForm(buildInitialForm(order))
         setPlan(mapPlanFromOrder(order))
       })
@@ -66,7 +70,7 @@ export default function EditPage() {
     setErrors({})
 
     try {
-      await updateSecondCall(token, buildSecondCallPayload(form))
+      await updateSecondCall(token, buildSecondCallPayload(form), partnerId)
       setSubmitSuccess(true)
       pushWithPartnerPath(router, "/editar-concluido")
     } catch {

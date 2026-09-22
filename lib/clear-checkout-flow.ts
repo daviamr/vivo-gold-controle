@@ -1,4 +1,5 @@
 import { clearOrderSession, clearPartnerSession } from "@/lib/order-storage"
+import { clearConsultantHash } from "@/lib/partner-hash"
 
 export const CUSTOMER_STORAGE_KEY = "customer"
 export const KEEP_CUSTOMER_AFTER_RESUME_KEY = "keep-customer-after-resume"
@@ -16,6 +17,7 @@ export function clearCheckoutFlow() {
 export function clearCompletedPartnerFlow() {
   try {
     clearPartnerSession()
+    clearConsultantHash()
     localStorage.removeItem(FLOW_TIMESTAMP_KEY)
   } catch {
     // localStorage unavailable

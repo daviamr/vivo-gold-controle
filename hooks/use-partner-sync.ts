@@ -2,7 +2,7 @@
 
 import { useEffect } from "react"
 import { usePathname } from "next/navigation"
-import { applyPartnerHashToUrl, getPartnerHashFromUrl, getStoredPartnerHash } from "@/lib/partner-hash"
+import { applyPartnerHashToUrl, captureConsultantHash, getPartnerHashFromUrl, getStoredPartnerHash } from "@/lib/partner-hash"
 import { persistIncomingPartnerHash } from "@/lib/order-storage"
 import { expireCheckoutFlowIfStale } from "@/lib/storage-expiry"
 
@@ -11,6 +11,7 @@ export function usePartnerSync() {
 
   useEffect(() => {
     expireCheckoutFlowIfStale()
+    captureConsultantHash()
 
     const isCompletedFlow =
       Boolean(pathname?.includes("/available")) ||
