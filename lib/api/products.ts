@@ -1,5 +1,5 @@
 import { api } from "@/lib/api"
-import { VIVO_CATEGORY, VIVO_COMPANY_ID } from "@/lib/constants/vivo"
+import { VIVO_CATEGORY, VIVO_CLIENT_TYPE, VIVO_COMPANY_ID } from "@/lib/constants/vivo"
 import type { IPlan } from "@/interface/Plan"
 
 function normalizePlanExtras(extras: unknown): IPlan["extras"] {
@@ -157,7 +157,7 @@ export async function fetchProducts() {
     params: {
       company_id: VIVO_COMPANY_ID,
       category: VIVO_CATEGORY,
-      client_type: "PF",
+      client_type: VIVO_CLIENT_TYPE,
       page: 1,
       per_page: 100,
     },

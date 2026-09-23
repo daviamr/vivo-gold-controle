@@ -1,11 +1,12 @@
 import type { Metadata } from "next";
 import Header from '../../components/layout/Header'
 import DefaultLayout from '../../components/layout/DefaultLayout'
-import { openGraphImages, twitterCard } from "@/lib/site-metadata"
+import { openGraphImages, siteDescription, siteKeywords, siteTitle, twitterCard } from "@/lib/site-metadata"
 
 export const metadata: Metadata = {
-  title: 'Vivo Fibra - A Melhor Internet Banda Larga da América Latina',
-  description: 'A Melhor Internet Banda Larga da América Latina',
+  title: siteTitle,
+  description: siteDescription,
+  keywords: [...siteKeywords],
   icons: '/favicon.ico',
   openGraph: {
     type: "website",

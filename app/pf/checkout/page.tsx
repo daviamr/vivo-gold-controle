@@ -512,11 +512,11 @@ function Index() {
           <div className={`bg-white p-4 rounded-sm shadow-xs ${(step !== 3 ? 'mt-12' : 'mt-4')}`}>
             <div>
               <p className={`font-light mb-4 ${(step === 4) && 'hidden'}`}>{STEPS[step as keyof typeof STEPS].subtitle}</p>
-              {(step === 2) && (
+              {/* {(step === 2) && (
                 <p className="font-light mb-4 text-sm">
                   É necessário ter alguém no local informado. <a href="#" className="underline text-default-purple">Consulte o prazo de entrega</a>
                 </p>
-              )}
+              )} */}
               <p className={`text-2xl font-semibold text-gray-800 ${(step === 4) && 'hidden'}`}>{STEPS[step as keyof typeof STEPS].title}</p>
               {(step === 3) && (
                 <p className="font-light mt-2 mb-4 text-sm">Sua fatura vai chegar apenas neste e-mail, mas pode ser acessada no App Vivo. Você não acumula papel e ainda ganha 3 GB de internet todo mês</p>

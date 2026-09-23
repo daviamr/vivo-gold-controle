@@ -15,8 +15,8 @@ import {
   VIVO_COMPANY_ID,
   VIVO_COMPANY_NAME,
   VIVO_JOURNEY,
+  VIVO_CLIENT_TYPE,
   VIVO_LANDING_PAGE,
-  getVivoClientType,
 } from "@/lib/constants/vivo"
 import {
   getOrderSession,
@@ -263,7 +263,7 @@ export class VivoFibraAPI {
       business_partner: stored.partnerName ?? VIVO_COMPANY_NAME,
       partner_id: stored.partnerId ?? null,
       category: VIVO_CATEGORY,
-      client_type: getVivoClientType(),
+      client_type: VIVO_CLIENT_TYPE,
       landing_page: VIVO_LANDING_PAGE,
       zip_code: this.onlyNumber(cep),
       address: customer?.address?.street ?? customer?.address?.logradouro ?? "",

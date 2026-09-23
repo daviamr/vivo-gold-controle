@@ -3,7 +3,6 @@ import {
   VIVO_COMPANY_ID,
   VIVO_COMPANY_NAME,
   VIVO_LANDING_PAGE,
-  getVivoClientType,
 } from "@/lib/constants/vivo"
 import { resolvePartner } from "@/lib/api/partner-resolver"
 import { getUfFromPhone } from "@/lib/ddd-uf"
@@ -66,7 +65,6 @@ async function resolveTalkToUsPartner(phone: string) {
     const partner = await resolvePartner({
       cep,
       uf,
-      clientType: getVivoClientType(),
     })
 
     if (partner) {

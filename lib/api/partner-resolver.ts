@@ -1,9 +1,8 @@
 import { api } from "@/lib/api"
 import {
   VIVO_CATEGORY,
+  VIVO_CLIENT_TYPE,
   VIVO_COMPANY_ID,
-  getVivoClientType,
-  type VivoClientType,
 } from "@/lib/constants/vivo"
 import { getPartnerHashFromUrl, isSamePartnerHash } from "@/lib/partner-hash"
 
@@ -20,7 +19,6 @@ export type ResolvePartnerInput = {
   cep?: string | null
   uf?: string | null
   partnerHash?: string | null
-  clientType?: VivoClientType
 }
 
 type PartnerResolverResponse = {
@@ -39,10 +37,9 @@ function normalizeInput(
 
 async function fetchPartnerResolver(input: ResolvePartnerInput) {
   const partnerHash = input.partnerHash ?? getPartnerHashFromUrl()
-  const clientType = input.clientType ?? getVivoClientType()
   const query = new URLSearchParams({
     company_id: String(VIVO_COMPANY_ID),
-    client_type: clientType,
+    client_type: VIVO_CLIENT_TYPE,
     category: VIVO_CATEGORY,
   })
 
