@@ -102,7 +102,7 @@ export class VivoFibraAPI {
       }, {})
     const ymd = `${parts.year ?? ""}${parts.month ?? ""}${parts.day ?? ""}`
     const n = Math.floor(Math.random() * 90000) + 10000
-    return `${ymd}${n}`
+    return `${ymd}-${n}`
   }
 
   buildPlanPayload(plan: IPlan, mobileLine?: string): UpdateOrderPayload {
@@ -298,6 +298,8 @@ export class VivoFibraAPI {
       partnerLogoUrl: stored.partnerLogoUrl,
       partnerHash,
       partnerCnpj: stored.partnerCnpj,
+      partnerResolved: stored.partnerResolved,
+      resolvedForHash: stored.resolvedForHash,
     }
     saveOrderSession(session)
     return session

@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Script from "next/script";
 import { Roboto } from "next/font/google";
 import "./globals.css";
 import AppShell from '../components/layout/AppShell'
@@ -27,6 +26,13 @@ export default function RootLayout({ children, }: Readonly<{ children: React.Rea
   return (
     <html lang="pt-br">
       <head>
+        {process.env.NODE_ENV === "production" && (
+          <script
+            dangerouslySetInnerHTML={{
+              __html: `(function(){var p=location.pathname;if(p==="/"||p==="/index.html")return;if(/\\.[a-zA-Z0-9]+$/.test(p))return;var known={pf:1,pj:1,"politica-de-privacidade":1,"termos-de-uso":1,editar:1,"editar-concluido":1,retomar:1};var parts=p.split("/").filter(Boolean);var n=0;while(n<2&&parts.length&&!known[parts[0]]&&parts[0]!=="index.html"&&parts[0]!=="_next"){parts=parts.slice(1);n++}if(!parts.length||!known[parts[0]])return;var path="/"+parts.join("/");if(!path.endsWith("/"))path+="/";location.replace(path+"index.html"+location.search+location.hash)})();`,
+            }}
+          />
+        )}
         {/* Google Tag Manager */}
         <script
           dangerouslySetInnerHTML={{
@@ -50,11 +56,6 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
           />
         </noscript>
         {/* End Google Tag Manager (noscript) */}
-        {process.env.NODE_ENV === "production" && (
-          <Script id="s3-index-fallback" strategy="beforeInteractive">
-            {`(function(){var p=location.pathname;if(p==="/"||p==="/index.html")return;if(/\\.[a-zA-Z0-9]+$/.test(p))return;var known={pf:1,pj:1,"politica-de-privacidade":1,"termos-de-uso":1,editar:1,"editar-concluido":1,retomar:1};var parts=p.split("/").filter(Boolean);if(!parts.length||!known[parts[0]])return;var b=p.endsWith("/")?p:p+"/";location.replace(b+"index.html"+location.search+location.hash)})();`}
-          </Script>
-        )}
         <AppShell>
           {children}
         </AppShell>

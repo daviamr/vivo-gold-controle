@@ -49,8 +49,6 @@ async function fetchPartnerResolver(input: ResolvePartnerInput) {
   if (uf) query.set("uf", uf)
   if (partnerHash) query.set("partner_hash", partnerHash)
 
-  if (!sanitizedCep && !uf && !partnerHash) return null
-
   const { data } = await api.get<PartnerResolverResponse>(`/partner-resolver?${query.toString()}`)
   return data.partner
 }

@@ -4,14 +4,7 @@ import {
   VIVO_COMPANY_NAME,
   VIVO_LANDING_PAGE,
 } from "@/lib/constants/vivo"
-import { resolvePartner } from "@/lib/api/partner-resolver"
-import { getUfFromPhone } from "@/lib/ddd-uf"
-import {
-  getOrderSession,
-  getPartnerSessionFields,
-  savePartnerData,
-} from "@/lib/order-storage"
-import { applyPartnerHashToUrl } from "@/lib/partner-hash"
+import { getPartnerSessionFields } from "@/lib/order-storage"
 import { toInternationalPhoneDigits } from "@/lib/phone"
 
 export type TalkToUsMessagePayload = {
@@ -37,59 +30,13 @@ export type TalkToUsFormData = {
 
 const TALK_TO_US_API_URL = "https://evolution.bigdates.com.br:3720/telecom/vivo/messages"
 
-function getCustomerCep() {
-  try {
-    const raw = localStorage.getItem("customer")
-    if (!raw) return ""
-    const customer = JSON.parse(raw) as { address?: { cep?: string } }
-    return customer.address?.cep ?? ""
-  } catch {
-    return ""
-  }
-}
-
-async function resolveTalkToUsPartner(phone: string) {
-  const session = getOrderSession()
-  const stored = getPartnerSessionFields()
-  if (stored.partnerId != null) {
-    return {
-      partnerId: stored.partnerId,
-      partnerName: stored.partnerName ?? session?.partnerName ?? "",
-    }
-  }
-
-  const cep = getCustomerCep()
-  const uf = getUfFromPhone(phone)
-
-  try {
-    const partner = await resolvePartner({
-      cep,
-      uf,
-    })
-
-    if (partner) {
-      if (partner.partner_hash) applyPartnerHashToUrl(partner.partner_hash)
-      savePartnerData(partner)
-      return {
-        partnerId: partner.partner_id,
-        partnerName: partner.partner_name,
-      }
-    }
-  } catch {
-    // Keep the stored partner if the resolver is unavailable.
-  }
-
-  return {
-    partnerId: stored.partnerId ?? session?.partnerId ?? null,
-    partnerName: stored.partnerName ?? session?.partnerName ?? "",
-  }
-}
-
 export async function buildTalkToUsPayload(
   data: TalkToUsFormData,
 ): Promise<TalkToUsMessagePayload> {
   const phone = toInternationalPhoneDigits(data.phone)
-  const { partnerId, partnerName } = await resolveTalkToUsPartner(phone)
+  const stored = getPartnerSessionFields()
+  const partnerId = stored.partnerId
+  const partnerName = stored.partnerName ?? ""
 
   return {
     company: VIVO_COMPANY_NAME.toUpperCase(),

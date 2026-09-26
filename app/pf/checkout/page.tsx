@@ -16,10 +16,8 @@ import SecondStep from '../../../components/checkout-steps/SecondStep'
 import ThirdStep from '../../../components/checkout-steps/ThirdStep'
 import FourthStep from '../../../components/checkout-steps/FourthStep'
 import { getLastEmailVerification, validateStep1, validateStep2, validateStep3, validateStep4 } from "@/lib/helpers/CheckoutValidations"
-import { getOrderSession, getPartnerSessionFields, savePartnerData } from "@/lib/order-storage"
-import { resolvePartner } from "@/lib/api/partner-resolver"
-import { getUfFromPhone } from "@/lib/ddd-uf"
-import { applyPartnerHashToUrl, pushWithPartnerPath } from "@/lib/partner-hash"
+import { getOrderSession, getPartnerSessionFields } from "@/lib/order-storage"
+import { pushWithPartnerPath } from "@/lib/partner-hash"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { setStepQuery } from "@/lib/helpers/push"
 import { useRouter, useSearchParams } from "next/navigation"
@@ -327,28 +325,9 @@ function Index() {
           ddi: data.ddi
         }
         dataToSave = { ...customerData, firstStepData, orderId }
-        const phone = vivoFibraAPI.buildPhoneWithCountry(firstStepData.ddi, firstStepData.tel)
         const storedPartner = getPartnerSessionFields()
-        let partnerId = storedPartner.partnerId
-        let partnerName = storedPartner.partnerName
-
-        if (partnerId == null) {
-          try {
-            const partner = await resolvePartner({
-              uf: getUfFromPhone(phone),
-              cep: customerData.address?.cep,
-            })
-            if (partner) {
-              if (partner.partner_hash) applyPartnerHashToUrl(partner.partner_hash)
-              savePartnerData(partner)
-              partnerId = partner.partner_id
-              partnerName = partner.partner_name
-            }
-          } catch {
-            partnerId = null
-            partnerName = null
-          }
-        }
+        const partnerId = storedPartner.partnerId
+        const partnerName = storedPartner.partnerName
 
         await vivoFibraAPI.updateOrderProgress(
           orderId,

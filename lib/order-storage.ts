@@ -1,5 +1,5 @@
 import { touchFlowTimestamp } from "@/lib/storage-expiry"
-import { getPartnerHashFromUrl, isSamePartnerHash } from "@/lib/partner-hash"
+import { getPartnerHashFromUrl } from "@/lib/partner-hash"
 import type { PartnerData } from "@/lib/api/partner-resolver"
 
 const ORDER_SESSION_KEY = "vivo-order-session"
@@ -15,6 +15,8 @@ export type OrderSession = {
   partnerLogoUrl: string | null
   partnerHash?: string | null
   partnerCnpj?: string | null
+  partnerResolved?: boolean
+  resolvedForHash?: string | null
 }
 
 export type PartnerSessionFields = {
@@ -23,6 +25,8 @@ export type PartnerSessionFields = {
   partnerLogoUrl: string | null
   partnerHash?: string | null
   partnerCnpj?: string | null
+  partnerResolved?: boolean
+  resolvedForHash?: string | null
 }
 
 function notifyOrderSessionChanged() {
@@ -64,6 +68,8 @@ export function saveOrderSession(session: OrderSession) {
     partnerLogoUrl: session.partnerLogoUrl,
     partnerHash: session.partnerHash,
     partnerCnpj: session.partnerCnpj,
+    partnerResolved: session.partnerResolved,
+    resolvedForHash: session.resolvedForHash,
   })
   touchFlowTimestamp()
   notifyOrderSessionChanged()
@@ -91,51 +97,33 @@ export function getPartnerSessionFields(): PartnerSessionFields {
     partnerLogoUrl: session?.partnerLogoUrl ?? stored?.partnerLogoUrl ?? null,
     partnerHash: session?.partnerHash ?? stored?.partnerHash ?? getPartnerHashFromUrl(),
     partnerCnpj: session?.partnerCnpj ?? stored?.partnerCnpj ?? null,
+    partnerResolved: session?.partnerResolved ?? stored?.partnerResolved ?? false,
+    resolvedForHash: session?.resolvedForHash ?? stored?.resolvedForHash ?? null,
   }
 }
 
-export function savePartnerData(partner: PartnerData | null) {
-  const session = getOrderSession()
-  if (!session) return
-
-  saveOrderSession({
-    ...session,
-    ...toPartnerSessionFields(partner),
-  })
+export function isPartnerResolved() {
+  return readStoredPartnerFields()?.partnerResolved === true
 }
 
-export function persistIncomingPartnerHash(partnerHash: string) {
-  if (typeof window === "undefined" || !partnerHash) return
-
-  const session = getOrderSession()
-  const stored = readStoredPartnerFields()
-  const currentHash = session?.partnerHash ?? stored?.partnerHash
-
-  if (isSamePartnerHash(currentHash, partnerHash) && (session?.partnerHash || stored?.partnerHash)) {
-    touchFlowTimestamp()
-    return
-  }
-
-  const hashChanged = currentHash != null && !isSamePartnerHash(currentHash, partnerHash)
-  const fields: PartnerSessionFields = hashChanged
+export function saveResolvedPartner(partner: PartnerData | null, resolvedForHash: string | null) {
+  const fields: PartnerSessionFields = partner
     ? {
+        ...toPartnerSessionFields(partner),
+        partnerResolved: true,
+        resolvedForHash,
+      }
+    : {
         partnerId: null,
         partnerName: null,
         partnerLogoUrl: null,
-        partnerHash,
+        partnerHash: null,
         partnerCnpj: null,
-      }
-    : {
-        partnerId: session?.partnerId ?? stored?.partnerId ?? null,
-        partnerName: session?.partnerName ?? stored?.partnerName ?? null,
-        partnerLogoUrl: session?.partnerLogoUrl ?? stored?.partnerLogoUrl ?? null,
-        partnerHash,
-        partnerCnpj: session?.partnerCnpj ?? stored?.partnerCnpj ?? null,
+        partnerResolved: true,
+        resolvedForHash,
       }
 
-  persistPartnerFields(fields)
-  touchFlowTimestamp()
-
+  const session = getOrderSession()
   if (session) {
     saveOrderSession({
       ...session,
@@ -144,6 +132,8 @@ export function persistIncomingPartnerHash(partnerHash: string) {
     return
   }
 
+  persistPartnerFields(fields)
+  touchFlowTimestamp()
   notifyOrderSessionChanged()
 }
 
