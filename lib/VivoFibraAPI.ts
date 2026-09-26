@@ -242,7 +242,7 @@ export class VivoFibraAPI {
     }
   }
 
-  private async ensureOrderSession() {
+  async ensureOrderSession() {
     const existing = getOrderSession()
     if (existing) return existing
 

@@ -8,6 +8,7 @@ import { PhoneInput } from "@/components/ui/phone-input/PhoneInput"
 import { Button } from "@/components/ui/button"
 import { getOrderSession, ORDER_SESSION_EVENT } from "@/lib/order-storage"
 import { updateOrder } from "@/lib/api/orders"
+import { VivoFibraAPI } from "@/lib/VivoFibraAPI"
 import { isValidPhoneNumber, parsePhoneNumber } from "@/lib/phone"
 import { withBasePath } from "@/lib/basePath"
 
@@ -23,8 +24,8 @@ function toTitleCase(str: string): string {
 
 type ContactFormProps = {
   option: SupportOption
-  orderId: number
-  orderToken: string
+  orderId: number | null
+  orderToken: string | null
   onSuccess: () => void
 }
 
@@ -32,6 +33,7 @@ function ContactForm({ option, orderId, orderToken, onSuccess }: ContactFormProp
   const [name, setName] = useState("")
   const [phone, setPhone] = useState("")
   const [phoneError, setPhoneError] = useState(false)
+  const [submitError, setSubmitError] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
 
   const isWpp = option === "whatsapp"
@@ -44,16 +46,32 @@ function ContactForm({ option, orderId, orderToken, onSuccess }: ContactFormProp
       return
     }
     setPhoneError(false)
+    setSubmitError(false)
     setIsLoading(true)
 
     try {
       const localPhone = parsePhoneNumber(phone).localNumber
-      await updateOrder(orderId, orderToken, {
+      let id = orderId
+      let token = orderToken
+
+      if (!id || !token) {
+        const session = await new VivoFibraAPI().ensureOrderSession()
+        if (!session) {
+          setSubmitError(true)
+          return
+        }
+        id = session.orderId
+        token = session.orderToken
+      }
+
+      await updateOrder(id, token, {
         support: option,
         full_name: toTitleCase(name),
         phone: localPhone,
       })
       onSuccess()
+    } catch {
+      setSubmitError(true)
     } finally {
       setIsLoading(false)
     }
@@ -93,6 +111,10 @@ function ContactForm({ option, orderId, orderToken, onSuccess }: ContactFormProp
           <p className="text-xs text-red-600 mt-1">Informe um número de telefone válido.</p>
         )}
       </div>
+
+      {submitError && (
+        <p className="text-xs text-red-600 text-center mb-4">Não foi possível enviar. Tente novamente.</p>
+      )}
 
       <Button
         type="submit"
@@ -180,12 +202,10 @@ export default function Bubble({ onTalkToUs }: { onTalkToUs: () => void }) {
     }
   }, [])
 
-  if (!orderId || !orderToken) return null
-
   if (!isOpen) {
     return (
       <div
-        className="fixed z-10 bottom-4 right-4 bg-[#25D366] text-white flex items-center gap-2 rounded-full p-2 sm:px-4 cursor-pointer"
+        className="fixed z-40 bottom-4 right-4 bg-[#25D366] text-white flex items-center gap-2 rounded-full p-2 sm:px-4 cursor-pointer"
         onClick={() => setIsOpen(true)}
       >
         <img src={withBasePath("/wpp-icon.png")} alt="Botão whatsapp" />
@@ -230,7 +250,7 @@ export default function Bubble({ onTalkToUs }: { onTalkToUs: () => void }) {
           </>
         ) : (
           <>
-            <p className="text-[18px] font-bold mt-8 mb-6 max-w-[232px] text-center">
+            <p className="text-[18px] font-bold mt-8 mb-6 text-center">
               O que você gostaria de fazer?
             </p>
             <div className="flex flex-col gap-4 mb-8 w-full">

@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation"
 import Footer from "./Footer"
 import TalkToUs from "../talk-to-us/TalkToUs"
 import { usePartnerSync } from "@/hooks/use-partner-sync"
-// import Bubble from "../bubble/Bubble"
+import Bubble from "../bubble/Bubble"
 
 const HIDDEN_FOOTER_PATHS = ["/checkout", "/available", "/editar-concluido"]
 
@@ -23,7 +23,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   return (
     <>
       {isTalkToUsOpen && <TalkToUs setIsTalkToUsOpen={setIsTalkToUsOpen} />}
-      {/* {!hideFooter && <Bubble onTalkToUs={() => setIsTalkToUsOpen(true)} />} */}
+      {!hideFooter && <Bubble onTalkToUs={() => setIsTalkToUsOpen(true)} />}
       {children}
       {!hideFooter && <Footer setIsTalkToUsOpen={setIsTalkToUsOpen} />}
     </>
